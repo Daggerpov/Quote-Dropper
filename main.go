@@ -1,18 +1,19 @@
 package main
 
 import (
-	"net/http"
-
 	"errors"
-
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"log"
+	"net/http"
+	"os"
 )
 
 type quote struct {
-	ID       	string `json:"id"`
-	Text    	string `json:"text"`
-	Author   	string `json:"author"`
-	Type 		string `json:"type"`
+	ID     string `json:"id"`
+	Text   string `json:"text"`
+	Author string `json:"author"`
+	Type   string `json:"type"`
 }
 
 var quotes = []quote{
@@ -77,10 +78,34 @@ func createQuote(c *gin.Context) {
 }
 
 func main() {
-	router := gin.Default()
-	router.GET("/quotes", getQuotes)
-	router.GET("/quotes/:id", quoteById)
-	router.POST("/quotes", createQuote)
+	log.Print("starting server...")
+	http.HandleFunc("/", handler)
+
+	// Determine port for HTTP service.
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+		log.Printf("defaulting to port %s", port)
+	}
+
+	// Start HTTP server.
+	log.Printf("listening on port %s", port)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		log.Fatal(err)
+	}
+
+	// router := gin.Default()
+	// router.GET("/quotes", getQuotes)
+	// router.GET("/quotes/:id", quoteById)
+	// router.POST("/quotes", createQuote)
 	// router.PATCH("/edit", editQuote) TODO - Implement editing quotes.
-	router.Run("localhost:8080")
+	// router.Run("localhost:8080")
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
+	name := os.Getenv("NAME")
+	if name == "" {
+		name = "World"
+	}
+	fmt.Fprintf(w, "Hello %s!\n", name)
 }
