@@ -2,11 +2,12 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"os"
+	"embed"
+    "html/template"
 )
 
 type quote struct {
@@ -77,35 +78,41 @@ func createQuote(c *gin.Context) {
 	c.IndentedJSON(http.StatusCreated, newQuote)
 }
 
+//go:embed templates/*
+var resources embed.FS
+
+var t = template.Must(template.ParseFS(resources, "templates/*"))
+
 func main() {
-	log.Print("starting server...")
-	http.HandleFunc("/", handler)
-
-	// Determine port for HTTP service.
 	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-		log.Printf("defaulting to port %s", port)
-	}
+    if port == "" {
+        port = "8080"
+    }
 
-	// Start HTTP server.
-	log.Printf("listening on port %s", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		log.Fatal(err)
-	}
+    	r := gin.Default()
 
-	// router := gin.Default()
-	// router.GET("/quotes", getQuotes)
-	// router.GET("/quotes/:id", quoteById)
-	// router.POST("/quotes", createQuote)
-	// router.PATCH("/edit", editQuote) TODO - Implement editing quotes.
-	// router.Run("localhost:8080")
-}
+	// GET /quotes - get all quotes
+	r.GET("/quotes", getQuotes)
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	name := os.Getenv("NAME")
-	if name == "" {
-		name = "World"
-	}
-	fmt.Fprintf(w, "Hello %s!\n", name)
+	// GET /quotes/:id - get a specific quote by ID
+	r.GET("/quotes/:id", quoteById)
+
+	// POST /quotes - create a new quote
+	r.POST("/quotes", createQuote)
+
+	// serve static files
+	r.Static("/static", "./static")
+
+	// serve templates
+	r.SetHTMLTemplate(t)
+
+	r.GET("/", func(c *gin.Context) {
+		data := map[string]string{
+			"Region": os.Getenv("FLY_REGION"),
+		}
+		c.HTML(http.StatusOK, "index.html.tmpl", data)
+	})
+
+	log.Println("listening on", port)
+	log.Fatal(http.ListenAndServe(":"+port, r))
 }
