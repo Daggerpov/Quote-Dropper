@@ -5,18 +5,18 @@ import (
 	"embed"
 	// "errors"
 	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
-	_ "github.com/lib/pq"
 )
 
 type quote struct {
-	ID     			string `json:"id"`
-	Text   			string `json:"text"`
-	Author 			string `json:"author"`
-	Classification  string `json:"classification"`
+	ID             string `json:"id"`
+	Text           string `json:"text"`
+	Author         string `json:"author"`
+	Classification string `json:"classification"`
 }
 
 //go:embed templates/*
@@ -74,52 +74,32 @@ func main() {
 	})
 
 	// GET /quotes/:id - get a specific quote by ID
-    r.GET("/quotes/:id", func(c *gin.Context) {
-        id := c.Param("id")
-        var q quote
-        err := db.QueryRow("SELECT id, text, author, classification FROM quotes WHERE id = $1", id).Scan(&q.ID, &q.Text, &q.Author, &q.Classification)
-        if err == sql.ErrNoRows {
-            c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Quote not found."})
-            return
-        } else if err != nil {
+	r.GET("/quotes/:id", func(c *gin.Context) {
+		id := c.Param("id")
+		var q quote
+		err := db.QueryRow("SELECT id, text, author, classification FROM quotes WHERE id = $1", id).Scan(&q.ID, &q.Text, &q.Author, &q.Classification)
+		if err == sql.ErrNoRows {
+			c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Quote not found."})
+			return
+		} else if err != nil {
 			log.Println(err)
-            log.Fatal(err)
-        }
-        c.IndentedJSON(http.StatusOK, q)
-    })
-
-    // POST /quotes - create a new quote
-    r.POST("/quotes", func(c *gin.Context) {
-        var newQuote quote
-        if err := c.BindJSON(&newQuote); err != nil {
-			log.Println(err)
-            log.Fatal(err)
-        }
-        stmt, err := db.Prepare("INSERT INTO quotes (id, text, author, classification) VALUES ($1, $2, $3, $4)")
-        if err != nil {
-			log.Println(err)
-            log.Fatal(err)
-        }
-        _, err = stmt.Exec(newQuote.ID, newQuote.Text, newQuote.Author, newQuote.Classification)
-        if err != nil {
-			log.Println(err)
-            log.Fatal(err)
-        }
-        quotes = append(quotes, newQuote)
-        c.IndentedJSON(http.StatusCreated, newQuote)
+			log.Fatal(err)
+		}
+		c.IndentedJSON(http.StatusOK, q)
 	})
+
 	// serve static files
-    r.Static("/static", "./static")
+	r.Static("/static", "./static")
 
-    // serve templates
-    r.SetHTMLTemplate(t)
+	// serve templates
+	r.SetHTMLTemplate(t)
 
-    r.GET("/", func(c *gin.Context) {
-        data := map[string]string{
-            "Region": os.Getenv("FLY_REGION"),
-        }
-        c.HTML(http.StatusOK, "index.html.tmpl", data)
-    })
+	r.GET("/", func(c *gin.Context) {
+		data := map[string]string{
+			"Region": os.Getenv("FLY_REGION"),
+		}
+		c.HTML(http.StatusOK, "index.html.tmpl", data)
+	})
 
 	log.Println("listening on", port)
 	log.Fatal(http.ListenAndServe(":"+port, r))
