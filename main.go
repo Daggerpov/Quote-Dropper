@@ -8,6 +8,8 @@ import (
 	"os"
 	"embed"
     "html/template"
+	"database/sql"
+	"github.com/lib/pq"
 )
 
 type quote struct {
@@ -84,6 +86,18 @@ var resources embed.FS
 var t = template.Must(template.ParseFS(resources, "templates/*"))
 
 func main() {
+	dbURL := os.Getenv("DATABASE_URL")
+    if dbURL == "" {
+        log.Fatal("DATABASE_URL environment variable not set")
+    }
+
+    db, err := sql.Open("postgres", dbURL)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer db.Close()
+	
+
 	port := os.Getenv("PORT")
     if port == "" {
         port = "8080"
