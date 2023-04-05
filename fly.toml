@@ -6,6 +6,7 @@ kill_timeout = 5
 mounts = []
 primary_region = "sea"
 processes = []
+DATABASE_URL = "postgresql://postgres:gOF2FnKFuz3oZZSdNjxj@containers-us-west-34.railway.app:7700/railway"
 
 [build]
   builder = "paketobuildpacks/builder:base"

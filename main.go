@@ -1,83 +1,22 @@
 package main
 
 import (
-	"errors"
+	"database/sql"
+	"embed"
+	// "errors"
 	"github.com/gin-gonic/gin"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
-	"embed"
-    "html/template"
-	"database/sql"
-	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 )
 
 type quote struct {
-	ID     string `json:"id"`
-	Text   string `json:"text"`
-	Author string `json:"author"`
-	Type   string `json:"type"`
-}
-
-var quotes = []quote{
-	{ID: "1", Text: "Devote the rest of your life to making progress.", Author: "Leo Tolstoy", Type: "Motivation"},
-	{ID: "2", Text: "Instead of fighting the world, kill your ego.", Author: "Rumi", Type: "Self"},
-	{ID: "3", Text: "A man who fears suffering is already suffering from what he fears", Author: "Montaigne", Type: "Philosophy"},
-}
-
-func getQuotes(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, quotes)
-}
-
-func quoteById(c *gin.Context) {
-	id := c.Param("id")
-	quote, err := getQuoteById(id)
-
-	if err != nil {
-		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Quote not found."})
-		return
-	}
-
-	c.IndentedJSON(http.StatusOK, quote)
-}
-
-// func editQuote(c *gin.Context) {
-// 	id, ok := c.GetQuery("id")
-
-// 	if !ok {
-// 		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Missing id query parameter."})
-// 		return
-// 	}
-
-// 	quote, err := getQuoteById(id)
-
-// 	if err != nil {
-// 		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Quote not found."})
-// 		return
-// 	}
-
-// 	c.IndentedJSON(http.StatusOK, quote)
-// }
-
-func getQuoteById(id string) (*quote, error) {
-	for i, b := range quotes {
-		if b.ID == id {
-			return &quotes[i], nil
-		}
-	}
-
-	return nil, errors.New("quote not found")
-}
-
-func createQuote(c *gin.Context) {
-	var newQuote quote
-
-	if err := c.BindJSON(&newQuote); err != nil {
-		return
-	}
-
-	quotes = append(quotes, newQuote)
-	c.IndentedJSON(http.StatusCreated, newQuote)
+	ID     			string `json:"id"`
+	Text   			string `json:"text"`
+	Author 			string `json:"author"`
+	Classification  string `json:"classification"`
 }
 
 //go:embed templates/*
@@ -87,45 +26,100 @@ var t = template.Must(template.ParseFS(resources, "templates/*"))
 
 func main() {
 	dbURL := os.Getenv("DATABASE_URL")
-    if dbURL == "" {
-        log.Fatal("DATABASE_URL environment variable not set")
-    }
+	if dbURL == "" {
+		log.Fatal("DATABASE_URL environment variable not set")
+	}
 
-    db, err := sql.Open("postgres", dbURL)
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer db.Close()
-	
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Println(err)
+		log.Fatal(err)
+	}
+	defer db.Close()
 
 	port := os.Getenv("PORT")
-    if port == "" {
-        port = "8080"
-    }
+	if port == "" {
+		port = "8080"
+	}
 
-    	r := gin.Default()
+	r := gin.Default()
+
+	quotes := []quote{}
 
 	// GET /quotes - get all quotes
-	r.GET("/quotes", getQuotes)
+	r.GET("/quotes", func(c *gin.Context) {
+		rows, err := db.Query("SELECT id, text, author, classification FROM quotes")
+		if err != nil {
+			log.Println(err)
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		quotes = []quote{}
+		for rows.Next() {
+			var q quote
+			if err := rows.Scan(&q.ID, &q.Text, &q.Author, &q.Classification); err != nil {
+				log.Println(err)
+				log.Fatal(err)
+			}
+			quotes = append(quotes, q)
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			log.Fatal(err)
+		}
+
+		c.IndentedJSON(http.StatusOK, quotes)
+	})
 
 	// GET /quotes/:id - get a specific quote by ID
-	r.GET("/quotes/:id", quoteById)
+    r.GET("/quotes/:id", func(c *gin.Context) {
+        id := c.Param("id")
+        var q quote
+        err := db.QueryRow("SELECT id, text, author, classification FROM quotes WHERE id = $1", id).Scan(&q.ID, &q.Text, &q.Author, &q.Classification)
+        if err == sql.ErrNoRows {
+            c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Quote not found."})
+            return
+        } else if err != nil {
+			log.Println(err)
+            log.Fatal(err)
+        }
+        c.IndentedJSON(http.StatusOK, q)
+    })
 
-	// POST /quotes - create a new quote
-	r.POST("/quotes", createQuote)
-
-	// serve static files
-	r.Static("/static", "./static")
-
-	// serve templates
-	r.SetHTMLTemplate(t)
-
-	r.GET("/", func(c *gin.Context) {
-		data := map[string]string{
-			"Region": os.Getenv("FLY_REGION"),
-		}
-		c.HTML(http.StatusOK, "index.html.tmpl", data)
+    // POST /quotes - create a new quote
+    r.POST("/quotes", func(c *gin.Context) {
+        var newQuote quote
+        if err := c.BindJSON(&newQuote); err != nil {
+			log.Println(err)
+            log.Fatal(err)
+        }
+        stmt, err := db.Prepare("INSERT INTO quotes (id, text, author, classification) VALUES ($1, $2, $3, $4)")
+        if err != nil {
+			log.Println(err)
+            log.Fatal(err)
+        }
+        _, err = stmt.Exec(newQuote.ID, newQuote.Text, newQuote.Author, newQuote.Classification)
+        if err != nil {
+			log.Println(err)
+            log.Fatal(err)
+        }
+        quotes = append(quotes, newQuote)
+        c.IndentedJSON(http.StatusCreated, newQuote)
 	})
+	// serve static files
+    r.Static("/static", "./static")
+
+    // serve templates
+    r.SetHTMLTemplate(t)
+
+    r.GET("/", func(c *gin.Context) {
+        data := map[string]string{
+            "Region": os.Getenv("FLY_REGION"),
+        }
+        c.HTML(http.StatusOK, "index.html.tmpl", data)
+    })
 
 	log.Println("listening on", port)
 	log.Fatal(http.ListenAndServe(":"+port, r))
