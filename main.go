@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"embed"
 	"strconv"
+	"strings"
 
 	// "errors"
 	"html/template"
@@ -154,8 +155,10 @@ func main() {
 		}
 		if q.Classification == "" {
 			q.Classification = "NULL"
+		} else {
+			q.Classification = strings.ToLower(q.Classification) // Convert classification to lowercase
 		}
-		err := db.QueryRow("INSERT INTO quotes (text, author, classification) VALUES ($1, $2, $3) RETURNING id", q.Text, q.Author, q.Classification).Scan(&id)
+		err := db.QueryRow("INSERT INTO quotes (text, author, classification) VALUES ($1, $2, LOWER($3)) RETURNING id", q.Text, q.Author, q.Classification).Scan(&id)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to insert quote into the database."})
