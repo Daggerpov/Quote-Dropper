@@ -3,13 +3,16 @@ package main
 import (
 	"database/sql"
 	"embed"
+	"strconv"
+
 	// "errors"
-	"github.com/gin-gonic/gin"
-	_ "github.com/lib/pq"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
 )
 
 type quote struct {
@@ -74,9 +77,15 @@ func main() {
 
 	// GET /quotes/:id - get a specific quote by ID
 	r.GET("/quotes/:id", func(c *gin.Context) {
-		id := c.Param("id")
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid quote ID."})
+			return
+		}
+
 		var q quote
-		err := db.QueryRow("SELECT id, text, author, classification FROM quotes WHERE id = $1", id).Scan(&q.ID, &q.Text, &q.Author, &q.Classification)
+		err = db.QueryRow("SELECT id, text, author, classification FROM quotes WHERE id = $1", id).Scan(&q.ID, &q.Text, &q.Author, &q.Classification)
 		if err == sql.ErrNoRows {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Quote not found."})
 			return
@@ -85,6 +94,36 @@ func main() {
 			log.Fatal(err)
 		}
 		c.IndentedJSON(http.StatusOK, q)
+	})
+
+	// GET /quotes/:classification - get quotes by classification
+	r.GET("/quotes/classification=:classification", func(c *gin.Context) {
+		classification := c.Param("classification")
+
+		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE classification = $1", classification)
+		if err != nil {
+			log.Println(err)
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		quotes := []quote{}
+
+		for rows.Next() {
+			var q quote
+			if err := rows.Scan(&q.ID, &q.Text, &q.Author, &q.Classification); err != nil {
+				log.Println(err)
+				log.Fatal(err)
+			}
+			quotes = append(quotes, q)
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			log.Fatal(err)
+		}
+
+		c.IndentedJSON(http.StatusOK, quotes)
 	})
 
 	// POST /quotes - add a new quote
