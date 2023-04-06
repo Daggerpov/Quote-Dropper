@@ -44,8 +44,6 @@ func main() {
 
 	r := gin.Default()
 
-	quotes := []quote{}
-
 	// GET /quotes - get all quotes
 	r.GET("/quotes", func(c *gin.Context) {
 		rows, err := db.Query("SELECT id, text, author, classification FROM quotes")
@@ -54,6 +52,8 @@ func main() {
 			log.Fatal(err)
 		}
 		defer rows.Close()
+
+		quotes := []quote{}
 
 		for rows.Next() {
 			var q quote
