@@ -173,6 +173,9 @@ func main() {
 		var id int
 		if q.Author == "" {
 			q.Author = "NULL"
+		} else {
+			// Capitalize every word in the author field
+			q.Author = strings.Title(q.Author)
 		}
 		if q.Classification == "" {
 			q.Classification = "NULL"
