@@ -174,11 +174,12 @@ func main() {
 
 		// Insert the new quote into the database
 		var id int
-		if q.Author == "" {
-			q.Author = "NULL"
+		if q.Author == nil {
+			q.Author = &sql.NullString{String: "NULL", Valid: false}
 		} else {
 			// Capitalize every word in the author field
-			q.Author = strings.Title(q.Author)
+			author := strings.Title(q.Author.String)
+			q.Author = &sql.NullString{String: author, Valid: true}
 		}
 		if q.Classification == "" {
 			q.Classification = "NULL"
