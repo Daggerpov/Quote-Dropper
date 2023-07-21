@@ -17,10 +17,10 @@ import (
 )
 
 type quote struct {
-	ID             int            `json:"id"`
-	Text           string         `json:"text"`
-	Author         sql.NullString `json:"author"`
-	Classification string         `json:"classification"`
+	ID             int             `json:"id"`
+	Text           string          `json:"text"`
+	Author         *sql.NullString `json:"author"`
+	Classification string          `json:"classification"`
 }
 
 //go:embed templates/*
@@ -112,10 +112,13 @@ func main() {
 
 		for rows.Next() {
 			var q quote
-			if err := rows.Scan(&q.ID, &q.Text, &q.Author, &q.Classification); err != nil {
+			var author sql.NullString
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification); err != nil {
 				log.Println(err)
 				log.Fatal(err)
 			}
+			q.Author = &author
+
 			quotes = append(quotes, q)
 		}
 
