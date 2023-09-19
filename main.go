@@ -131,7 +131,7 @@ func main() {
 	})
 
 	// GET /quoteCount/:classification - get the count of quotes for a specific classification
-	r.GET("/quoteCount/:classification", func(c *gin.Context) {
+	r.GET("/quoteCount/classification=:classification", func(c *gin.Context) {
 		classification := c.Param("classification")
 
 		var count int
