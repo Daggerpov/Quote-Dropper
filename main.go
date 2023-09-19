@@ -142,7 +142,7 @@ func main() {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"count": count})
+		c.IndentedJSON(http.StatusOK, gin.H{"count": count}) // Use IndentedJSON for consistent formatting
 	})
 
 	// POST /quotes - add a new quote
