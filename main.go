@@ -130,21 +130,6 @@ func main() {
 		c.IndentedJSON(http.StatusOK, quotes)
 	})
 
-	// GET /quoteCount/:classification - get the count of quotes for a specific classification
-	r.GET("/quoteCount/:classification", func(c *gin.Context) {
-		classification := c.Param("classification")
-
-		var count int
-		err := db.QueryRow("SELECT COUNT(*) FROM quotes WHERE classification = $1", classification).Scan(&count)
-		if err != nil {
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to get quote count."})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"count": count})
-	})
-
 	// POST /quotes - add a new quote
 	r.POST("/quotes", func(c *gin.Context) {
 		// Parse the request body into a new quote struct
