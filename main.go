@@ -100,7 +100,7 @@ func main() {
 	r.GET("/quotes/classification=:classification", func(c *gin.Context) {
 		classification := c.Param("classification")
 
-		rows, err := db.Query("SELECT id, text, author->>'String' AS author, classification FROM quotes WHERE classification = $1", classification)
+		rows, err := db.Query("SELECT id, text, (author::jsonb)->>'String' AS author, classification FROM quotes WHERE classification = $1", classification)
 		if err != nil {
 			log.Println(err)
 			log.Fatal(err)
