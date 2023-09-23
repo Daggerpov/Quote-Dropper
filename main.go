@@ -26,6 +26,14 @@ type quote struct {
 	Classification string          `json:"classification"`
 }
 
+// Create a new struct for response objects
+type quoteResponse struct {
+	ID             int             `json:"id"`
+	Text           string          `json:"text"`
+	Author         *sql.NullString `json:"author"`
+	Classification string          `json:"classification"`
+}
+
 //go:embed templates/*
 var resources embed.FS
 
@@ -186,7 +194,6 @@ func main() {
 			// Apply the title case conversion to the author field
 			title := converter.String(q.Author.String)
 			q.Author = &sql.NullString{String: title}
-
 		}
 		if q.Classification == "" {
 			q.Classification = "NULL"
@@ -201,8 +208,16 @@ func main() {
 		}
 		q.ID = id
 
-		// Return the newly created quote
-		c.IndentedJSON(http.StatusCreated, q)
+		// Create a response object
+		response := quoteResponse{
+			ID:             q.ID,
+			Text:           q.Text,
+			Author:         q.Author,
+			Classification: q.Classification,
+		}
+
+		// Return the newly created quote in the response
+		c.IndentedJSON(http.StatusCreated, response)
 	})
 
 	// serve static files
