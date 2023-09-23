@@ -26,14 +26,6 @@ type quote struct {
 	Classification string          `json:"classification"`
 }
 
-// Create a new struct for response objects
-type quoteResponse struct {
-	ID             int             `json:"id"`
-	Text           string          `json:"text"`
-	Author         *sql.NullString `json:"author"`
-	Classification string          `json:"classification"`
-}
-
 //go:embed templates/*
 var resources embed.FS
 
@@ -72,10 +64,13 @@ func main() {
 
 		for rows.Next() {
 			var q quote
-			if err := rows.Scan(&q.ID, &q.Text, &q.Author, &q.Classification); err != nil {
+			var author sql.NullString
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification); err != nil {
 				log.Println(err)
 				log.Fatal(err)
 			}
+			q.Author = &author
+
 			quotes = append(quotes, q)
 		}
 
@@ -209,7 +204,7 @@ func main() {
 		q.ID = id
 
 		// Create a response object
-		response := quoteResponse{
+		response := quote{
 			ID:             q.ID,
 			Text:           q.Text,
 			Author:         q.Author,
