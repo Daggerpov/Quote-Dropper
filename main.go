@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"embed"
 	"strconv"
-	"strings"
 
 	// "errors"
 	"html/template"
@@ -128,74 +127,6 @@ func main() {
 		}
 
 		c.IndentedJSON(http.StatusOK, quotes)
-	})
-
-	// POST /quotes - add a new quote
-	r.POST("/quotes", func(c *gin.Context) {
-		// Parse the request body into a new quote struct
-		var q quote
-		if err := c.ShouldBindJSON(&q); err != nil {
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid request body."})
-			return
-		}
-
-		// Validate the incoming quote
-		if q.Text == "" {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Text field is required."})
-			return
-		}
-
-		// Add a period if there isn't any yet in the 'Text' field
-		if q.Text[len(q.Text)-1] != '.' {
-			q.Text += "."
-		}
-
-		// Check if quote already exists
-		var existingID int
-		err := db.QueryRow("SELECT id FROM quotes WHERE text=$1", q.Text).Scan(&existingID)
-		if err == nil {
-			// Quote already exists, return the existing quote
-			var existingQuote quote
-			err := db.QueryRow("SELECT id, text, author, classification FROM quotes WHERE id=$1", existingID).Scan(&existingQuote.ID, &existingQuote.Text, &existingQuote.Author, &existingQuote.Classification)
-			if err != nil {
-				log.Println(err)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve existing quote from the database."})
-				return
-			}
-			c.IndentedJSON(http.StatusOK, existingQuote)
-			return
-		} else if err != sql.ErrNoRows {
-			// Error occurred while querying the database
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to check if quote already exists in the database."})
-			return
-		}
-
-		// Insert the new quote into the database
-		var id int
-		if q.Author == nil {
-			q.Author = &sql.NullString{String: "NULL", Valid: false}
-		} else {
-			// Capitalize every word in the author field
-			author := strings.Title(q.Author.String)
-			q.Author = &sql.NullString{String: author, Valid: true}
-		}
-		if q.Classification == "" {
-			q.Classification = "NULL"
-		} else {
-			q.Classification = strings.ToLower(q.Classification) // Convert classification to lowercase
-		}
-		err = db.QueryRow("INSERT INTO quotes (text, author, classification) VALUES ($1, $2, LOWER($3)) RETURNING id", q.Text, q.Author, q.Classification).Scan(&id)
-		if err != nil {
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to insert quote into the database."})
-			return
-		}
-		q.ID = id
-
-		// Return the newly created quote
-		c.IndentedJSON(http.StatusCreated, q)
 	})
 
 	// serve static files
