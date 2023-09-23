@@ -14,6 +14,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type quote struct {
@@ -175,11 +178,15 @@ func main() {
 		// Insert the new quote into the database
 		var id int
 		if q.Author == nil {
-			q.Author = &sql.NullString{String: "NULL", Valid: false}
+			q.Author = &sql.NullString{String: "NULL"}
 		} else {
-			// Capitalize every word in the author field
-			author := strings.Title(q.Author.String)
-			q.Author = &sql.NullString{String: author, Valid: true}
+			// Create a Title case converter
+			converter := cases.Title(language.English)
+
+			// Apply the title case conversion to the author field
+			title := converter.String(q.Author.String)
+			q.Author = &sql.NullString{String: title}
+
 		}
 		if q.Classification == "" {
 			q.Classification = "NULL"
