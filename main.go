@@ -190,16 +190,16 @@ func main() {
 
 		// Insert the new quote into the database
 		var id int
-		if q.Author == nil {
-			q.Author = &sql.NullString{String: "NULL"}
+		if q.Author == "" {
+			q.Author = "NULL"
 		} else {
 			// Create a Title case converter
 			converter := cases.Title(language.English)
 
 			// Apply the title case conversion to the author field
-			title := converter.String(q.Author.String)
-			q.Author = &sql.NullString{String: title}
+			q.Author = converter.String(q.Author)
 		}
+
 		if q.Classification == "" {
 			q.Classification = "NULL"
 		} else {
