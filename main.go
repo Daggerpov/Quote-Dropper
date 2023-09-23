@@ -47,9 +47,30 @@ func main() {
 
 	r := gin.Default()
 
+	// GET /quotes/:id - get a specific quote by ID
+	r.GET("/quotes/:id", func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid quote ID."})
+			return
+		}
+
+		var q quote
+		err = db.QueryRow("SELECT id, text, author, classification FROM quotes WHERE id = $1", id).Scan(&q.ID, &q.Text, &q.Author, &q.Classification)
+		if err == sql.ErrNoRows {
+			c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Quote not found."})
+			return
+		} else if err != nil {
+			log.Println(err)
+			log.Fatal(err)
+		}
+		c.IndentedJSON(http.StatusOK, q)
+	})
+
 	// GET /quotes - get all quotes
 	r.GET("/quotes", func(c *gin.Context) {
-		rows, err := db.Query("SELECT id, text, author, classification FROM quotes")
+		rows, err := db.Query("SELECT id, text, author->>'String' AS author, classification FROM quotes")
 		if err != nil {
 			log.Println(err)
 			log.Fatal(err)
@@ -75,32 +96,11 @@ func main() {
 		c.IndentedJSON(http.StatusOK, quotes)
 	})
 
-	// GET /quotes/:id - get a specific quote by ID
-	r.GET("/quotes/:id", func(c *gin.Context) {
-		idStr := c.Param("id")
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid quote ID."})
-			return
-		}
-
-		var q quote
-		err = db.QueryRow("SELECT id, text, author, classification FROM quotes WHERE id = $1", id).Scan(&q.ID, &q.Text, &q.Author, &q.Classification)
-		if err == sql.ErrNoRows {
-			c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Quote not found."})
-			return
-		} else if err != nil {
-			log.Println(err)
-			log.Fatal(err)
-		}
-		c.IndentedJSON(http.StatusOK, q)
-	})
-
-	// GET /quotes/:classification - get quotes by classification
+	// GET /quotes/classification=:classification - get quotes by classification
 	r.GET("/quotes/classification=:classification", func(c *gin.Context) {
 		classification := c.Param("classification")
 
-		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE classification = $1", classification)
+		rows, err := db.Query("SELECT id, text, author->>'String' AS author, classification FROM quotes WHERE classification = $1", classification)
 		if err != nil {
 			log.Println(err)
 			log.Fatal(err)
@@ -111,13 +111,10 @@ func main() {
 
 		for rows.Next() {
 			var q quote
-			var author sql.NullString
-			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification); err != nil {
+			if err := rows.Scan(&q.ID, &q.Text, &q.Author, &q.Classification); err != nil {
 				log.Println(err)
 				log.Fatal(err)
 			}
-			q.Author = &author
-
 			quotes = append(quotes, q)
 		}
 
