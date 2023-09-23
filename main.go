@@ -20,10 +20,10 @@ import (
 )
 
 type quote struct {
-	ID             int             `json:"id"`
-	Text           string          `json:"text"`
-	Author         *sql.NullString `json:"author"`
-	Classification string          `json:"classification"`
+	ID             int    `json:"id"`
+	Text           string `json:"text"`
+	Author         string `json:"author"`
+	Classification string `json:"classification"`
 }
 
 //go:embed templates/*
@@ -69,7 +69,12 @@ func main() {
 				log.Println(err)
 				log.Fatal(err)
 			}
-			q.Author = &author
+
+			if author.Valid {
+				q.Author = author.String
+			} else {
+				q.Author = ""
+			}
 
 			quotes = append(quotes, q)
 		}
@@ -123,7 +128,12 @@ func main() {
 				log.Println(err)
 				log.Fatal(err)
 			}
-			q.Author = &author
+
+			if author.Valid {
+				q.Author = author.String
+			} else {
+				q.Author = ""
+			}
 
 			quotes = append(quotes, q)
 		}
