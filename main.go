@@ -149,7 +149,7 @@ func main() {
 	// GET /quoteCount?category=:category - get the number of quotes in a given category
 	r.GET("/quoteCount", func(c *gin.Context) {
 		category := c.Query("category")
-		if category == "" {
+		if category == "" || category == "all" {
 			// If category is not specified, retrieve the total count of all quotes
 			var totalCount int
 			err := db.QueryRow("SELECT COUNT(*) FROM quotes").Scan(&totalCount)
