@@ -146,6 +146,25 @@ func main() {
 		c.IndentedJSON(http.StatusOK, quotes)
 	})
 
+	// GET /quoteCount?category=:category - get the number of quotes in a given category
+	r.GET("/quoteCount", func(c *gin.Context) {
+		category := c.Query("category")
+		if category == "" {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Category parameter is required."})
+			return
+		}
+
+		var count int
+		err := db.QueryRow("SELECT COUNT(*) FROM quotes WHERE classification = $1", strings.ToLower(category)).Scan(&count)
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve quote count from the database."})
+			return
+		}
+
+		c.IndentedJSON(http.StatusOK, gin.H{"category": category, "count": count})
+	})
+
 	// POST /quotes - add a new quote
 	r.POST("/quotes", func(c *gin.Context) {
 		// Parse the request body into a new quote struct
