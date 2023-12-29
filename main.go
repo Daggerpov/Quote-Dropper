@@ -150,7 +150,16 @@ func main() {
 	r.GET("/quoteCount", func(c *gin.Context) {
 		category := c.Query("category")
 		if category == "" {
-			c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Category parameter is required."})
+			// If category is not specified, retrieve the total count of all quotes
+			var totalCount int
+			err := db.QueryRow("SELECT COUNT(*) FROM quotes").Scan(&totalCount)
+			if err != nil {
+				log.Println(err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve total quote count from the database."})
+				return
+			}
+
+			c.IndentedJSON(http.StatusOK, gin.H{"category": "all", "count": totalCount})
 			return
 		}
 
