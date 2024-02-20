@@ -24,6 +24,7 @@ type quote struct {
 	Text           string `json:"text"`
 	Author         string `json:"author"`
 	Classification string `json:"classification"`
+	Approved       bool   `json:"approved"` // New field for approval status
 }
 
 //go:embed templates/*
@@ -216,6 +217,9 @@ func main() {
 			return
 		}
 
+		// Set the approved status to false for new quotes
+		q.Approved = false
+
 		// Insert the new quote into the database
 		var id int
 		if q.Author == "" {
@@ -233,7 +237,7 @@ func main() {
 		} else {
 			q.Classification = strings.ToLower(q.Classification) // Convert classification to lowercase
 		}
-		err = db.QueryRow("INSERT INTO quotes (text, author, classification) VALUES ($1, $2, LOWER($3)) RETURNING id", q.Text, q.Author, q.Classification).Scan(&id)
+		err = db.QueryRow("INSERT INTO quotes (text, author, classification, approved) VALUES ($1, $2, LOWER($3), $4) RETURNING id", q.Text, q.Author, q.Classification, q.Approved).Scan(&id)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to insert quote into the database."})
@@ -247,11 +251,13 @@ func main() {
 			Text:           q.Text,
 			Author:         q.Author,
 			Classification: q.Classification,
+			Approved:       q.Approved,
 		}
 
 		// Return the newly created quote in the response
 		c.IndentedJSON(http.StatusCreated, response)
 	})
+
 
 	// serve static files
 	r.Static("/static", "./static")
