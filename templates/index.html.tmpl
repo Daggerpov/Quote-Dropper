@@ -1,11 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daniel's Quote Dropper API</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f2f2f2;
+            text-align: center; /* Center align text */
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        h2 {
+            color: #666;
+        }
+    </style>
 </head>
 <body>
-<h1>Daniel's Quote Dropper API says hello.</h1>
-{{ if .Region }}
-<h2>I'm running in the {{.Region}} region</h2>
-{{end}}
+    <h1>Daniel's Quote Dropper API says hello.</h1>
+    {{ if .Region }}
+    <h2>I'm running in the {{.Region}} region</h2>
+    {{end}}
 </body>
 </html>
