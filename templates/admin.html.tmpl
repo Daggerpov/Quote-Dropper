@@ -74,9 +74,9 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    text: editText,
-                    author: editAuthor,
-                    classification: editClassification
+                    edit_text: editText, // <-- Use 'edit_text' instead of 'text'
+                    edit_author: editAuthor, // <-- Use 'edit_author' instead of 'author'
+                    edit_classification: editClassification // <-- Use 'edit_classification' instead of 'classification'
                 })
             })
             .then(response => {
@@ -108,6 +108,7 @@
                 console.error('Error dismissing quote:', error);
             });
         }
+
 
         function approveAllQuotes() {
             // Call the approveQuote function for each quote on the page
