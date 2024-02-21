@@ -28,6 +28,11 @@ type quote struct {
 	Author         string `json:"author"`
 	Classification string `json:"classification"`
 	Approved       bool   `json:"approved"` // New field for approval status
+
+	// New editable fields
+	EditText           string `json:"edit_text"`
+	EditAuthor         string `json:"edit_author"`
+	EditClassification string `json:"edit_classification"`
 }
 
 //go:embed templates/*
@@ -271,7 +276,7 @@ func main() {
 	// --------------------------------------------------------------------
 
 	// POST METHOD ABOVE
-	
+
 	// END OF PUBLIC METHODS
 
 	// START OF ADMIN METHODS
@@ -328,8 +333,16 @@ func main() {
 			return
 		}
 
-		// Update the approved status of the quote in the database
-		_, err = db.Exec("UPDATE quotes SET approved = true WHERE id = $1", id)
+		// Get the edited values from the request body
+		var editedQuote quote
+		if err := c.ShouldBindJSON(&editedQuote); err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid request body."})
+			return
+		}
+
+		// Update the quote in the database with the edited values
+		_, err = db.Exec("UPDATE quotes SET text = $1, author = $2, classification = $3, approved = true WHERE id = $4",
+			editedQuote.EditText, editedQuote.EditAuthor, editedQuote.EditClassification, id)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to approve the quote."})
@@ -338,6 +351,7 @@ func main() {
 
 		c.JSON(http.StatusOK, gin.H{"message": "Quote approved successfully."})
 	})
+
 
 	// POST /admin/dismiss/:id - Dismiss (delete) a quote
 	r.POST("/admin/dismiss/:id", func(c *gin.Context) {
