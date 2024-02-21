@@ -90,6 +90,22 @@
                 console.error('Error dismissing quote:', error);
             });
         }
+
+        function approveAllQuotes() {
+            // Call the approveQuote function for each quote on the page
+            document.querySelectorAll('.quote').forEach(quote => {
+                const id = quote.dataset.id;
+                approveQuote(id);
+            });
+        }
+
+        function dismissAllQuotes() {
+            // Call the dismissQuote function for each quote on the page
+            document.querySelectorAll('.quote').forEach(quote => {
+                const id = quote.dataset.id;
+                dismissQuote(id);
+            });
+        }
     </script>
 </head>
 <body>
@@ -98,9 +114,11 @@
     {{if not .quotes}}
         <p>No quotes available.</p>
     {{else}}
+        <button onclick="approveAllQuotes()">Approve All Quotes</button>
+        <button onclick="dismissAllQuotes()">Dismiss All Quotes</button>
         <ul>
             {{range .quotes}}
-            <li>
+            <li class="quote" data-id="{{.ID}}">
                 <div style="font-size: 18px;">{{.ID}} - {{.Text}}</div>
                 <div style="font-size: 14px; color: #666;">Author: {{.Author}} | Classification: {{.Classification}}</div>
                 <div>
