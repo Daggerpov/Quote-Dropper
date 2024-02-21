@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Page</title>
+    <script>
+        function approveQuote(id) {
+            fetch('/admin/approve/' + id, {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Update UI to signify approval
+                    document.getElementById('approval_' + id).innerText = '✔ Approved';
+                } else {
+                    console.error('Failed to approve quote');
+                }
+            })
+            .catch(error => {
+                console.error('Error approving quote:', error);
+            });
+        }
+
+        function dismissQuote(id) {
+            fetch('/admin/dismiss/' + id, {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Update UI to signify dismissal
+                    document.getElementById('dismissal_' + id).innerText = '✘ Dismissed';
+                } else {
+                    console.error('Failed to dismiss quote');
+                }
+            })
+            .catch(error => {
+                console.error('Error dismissing quote:', error);
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>Admin Page</h1>
+    
+    {{if not .quotes}}
+        <p>No quotes available.</p>
+    {{else}}
+        <ul>
+            {{range .quotes}}
+            <li>{{.ID}} - {{.Text}} 
+                <button onclick="approveQuote({{.ID}})">Approve</button>
+                <button onclick="dismissQuote({{.ID}})">Dismiss</button>
+                <span id="approval_{{.ID}}"></span>
+                <span id="dismissal_{{.ID}}"></span>
+            </li>
+            {{end}}
+        </ul>
+    {{end}}
+</body>
+</html>
