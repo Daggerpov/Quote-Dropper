@@ -10,7 +10,14 @@
     
     <ul>
         {{range .quotes}}
-        <li>{{.ID}} - {{.Text}}</li>
+        <li>{{.ID}} - {{.Text}} 
+            <form action="/admin/approve/{{.ID}}" method="POST" style="display: inline;">
+                <button type="submit">Approve</button>
+            </form>
+            <form action="/admin/dismiss/{{.ID}}" method="POST" style="display: inline;">
+                <button type="submit">Dismiss</button>
+            </form>
+        </li>
         {{end}}
     </ul>
 </body>
