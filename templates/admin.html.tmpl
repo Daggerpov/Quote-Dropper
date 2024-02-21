@@ -63,8 +63,21 @@
     </style>
     <script>
         function approveQuote(id) {
+            // Get the edited values
+            const editText = document.getElementById('edit_text_' + id).value;
+            const editAuthor = document.getElementById('edit_author_' + id).value;
+            const editClassification = document.getElementById('edit_classification_' + id).value;
+
             fetch('/admin/approve/' + id, {
-                method: 'POST'
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text: editText,
+                    author: editAuthor,
+                    classification: editClassification
+                })
             })
             .then(response => {
                 if (response.ok) {
@@ -124,8 +137,10 @@
         <ul>
             {{range .quotes}}
             <li class="quote" data-id="{{.ID}}">
-                <div style="font-size: 18px;">{{.ID}} - {{.Text}}</div>
-                <div class="quote-info" style="font-size: 14px; color: #666;">Author: {{.Author}} | Classification: {{.Classification}}</div>
+                <!-- Editable fields -->
+                <input type="text" id="edit_text_{{.ID}}" value="{{.Text}}" style="width: 100%;" />
+                <input type="text" id="edit_author_{{.ID}}" value="{{.Author}}" style="width: 100%;" />
+                <input type="text" id="edit_classification_{{.ID}}" value="{{.Classification}}" style="width: 100%;" />
                 <div>
                     <button onclick="approveQuote({{.ID}})">Approve</button>
                     <button onclick="dismissQuote({{.ID}})">Dismiss</button>

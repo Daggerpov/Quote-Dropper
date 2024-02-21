@@ -28,6 +28,11 @@ type quote struct {
 	Author         string `json:"author"`
 	Classification string `json:"classification"`
 	Approved       bool   `json:"approved"` // New field for approval status
+
+	// New editable fields
+	EditText           string `json:"edit_text"`
+	EditAuthor         string `json:"edit_author"`
+	EditClassification string `json:"edit_classification"`
 }
 
 //go:embed templates/*
@@ -271,7 +276,7 @@ func main() {
 	// --------------------------------------------------------------------
 
 	// POST METHOD ABOVE
-	
+
 	// END OF PUBLIC METHODS
 
 	// START OF ADMIN METHODS
