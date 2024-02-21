@@ -82,7 +82,7 @@
         }
     </style>
     <script>
-        function approveQuote(id) {
+       function approveQuote(id) {
             // Get the edited values
             const editText = document.getElementById('edit_text_' + id).value;
             const editAuthor = document.getElementById('edit_author_' + id).value;
@@ -103,6 +103,9 @@
                     if (response.ok) {
                         // Update UI to signify approval
                         document.getElementById('approval_' + id).innerText = '✔ Approved';
+                    } else if (response.status === 409) {
+                        // Display a message if the edited quote is dismissed due to duplication
+                        document.getElementById('dismissal_' + id).innerText = '✘ Dismissed: Duplicate Quote';
                     } else {
                         console.error('Failed to approve quote');
                     }
@@ -111,6 +114,7 @@
                     console.error('Error approving quote:', error);
                 });
         }
+ 
 
         function dismissQuote(id) {
             fetch('/admin/dismiss/' + id, {
