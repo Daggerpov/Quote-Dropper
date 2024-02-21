@@ -33,12 +33,19 @@
 
         button {
             padding: 10px 16px;
-            background-color: #4CAF50;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             transition: background-color 0.3s;
+        }
+
+        button.approve {
+            background-color: #4CAF50;
+        }
+
+        button.dismiss {
+            background-color: #FF5733;
         }
 
         button:hover {
@@ -82,7 +89,7 @@
         }
     </style>
     <script>
-       function approveQuote(id) {
+        function approveQuote(id) {
             // Get the edited values
             const editText = document.getElementById('edit_text_' + id).value;
             const editAuthor = document.getElementById('edit_author_' + id).value;
@@ -114,7 +121,7 @@
                     console.error('Error approving quote:', error);
                 });
         }
- 
+
 
         function dismissQuote(id) {
             fetch('/admin/dismiss/' + id, {
@@ -149,6 +156,7 @@
                 dismissQuote(id);
             });
         }
+        // JavaScript functions remain unchanged
     </script>
 </head>
 
@@ -158,8 +166,8 @@
     {{if not .quotes}}
     <p>No quotes available.</p>
     {{else}}
-    <button onclick="approveAllQuotes()">Approve All Quotes</button>
-    <button onclick="dismissAllQuotes()">Dismiss All Quotes</button>
+    <button onclick="approveAllQuotes()" class="approve">Approve All Quotes</button>
+    <button onclick="dismissAllQuotes()" class="dismiss">Dismiss All Quotes</button>
     <ul>
         {{range .quotes}}
         <li class="quote" data-id="{{.ID}}">
@@ -168,8 +176,8 @@
             <input type="text" id="edit_author_{{.ID}}" value="{{.Author}}" />
             <input type="text" id="edit_classification_{{.ID}}" value="{{.Classification}}" />
             <div class="quote-info"> <!-- Added class for styling -->
-                <button onclick="approveQuote({{.ID}})">Approve</button>
-                <button onclick="dismissQuote({{.ID}})">Dismiss</button>
+                <button onclick="approveQuote({{.ID}})" class="approve">Approve</button>
+                <button onclick="dismissQuote({{.ID}})" class="dismiss">Dismiss</button>
                 <span id="approval_{{.ID}}"></span>
                 <span id="dismissal_{{.ID}}"></span>
             </div>
