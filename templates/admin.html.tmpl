@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Page</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f2f2f2;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            background-color: #fff;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        button {
+            padding: 10px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        span {
+            margin-left: 10px;
+        }
+
+        #approval_ {
+            color: #4CAF50;
+        }
+
+        #dismissal_ {
+            color: #FF5733;
+        }
+    </style>
+    <script>
+        function approveQuote(id) {
+            fetch('/admin/approve/' + id, {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Update UI to signify approval
+                    document.getElementById('approval_' + id).innerText = '✔ Approved';
+                } else {
+                    console.error('Failed to approve quote');
+                }
+            })
+            .catch(error => {
+                console.error('Error approving quote:', error);
+            });
+        }
+
+        function dismissQuote(id) {
+            fetch('/admin/dismiss/' + id, {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Update UI to signify dismissal
+                    document.getElementById('dismissal_' + id).innerText = '✘ Dismissed';
+                } else {
+                    console.error('Failed to dismiss quote');
+                }
+            })
+            .catch(error => {
+                console.error('Error dismissing quote:', error);
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>Admin Page</h1>
+    
+    {{if not .quotes}}
+        <p>No quotes available.</p>
+    {{else}}
+        <ul>
+            {{range .quotes}}
+            <li>
+                <div style="font-size: 18px;">{{.ID}} - {{.Text}}</div>
+                <div style="font-size: 14px; color: #666;">Author: {{.Author}} | Classification: {{.Classification}}</div>
+                <div>
+                    <button onclick="approveQuote({{.ID}})">Approve</button>
+                    <button onclick="dismissQuote({{.ID}})">Dismiss</button>
+                    <span id="approval_{{.ID}}"></span>
+                    <span id="dismissal_{{.ID}}"></span>
+                </div>
+            </li>
+            {{end}}
+        </ul>
+    {{end}}
+</body>
+</html>

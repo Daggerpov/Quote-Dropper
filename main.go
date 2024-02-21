@@ -17,6 +17,9 @@ import (
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+
+	// for authentication for admin site
+	"crypto/subtle"
 )
 
 type quote struct {
@@ -24,6 +27,7 @@ type quote struct {
 	Text           string `json:"text"`
 	Author         string `json:"author"`
 	Classification string `json:"classification"`
+	Approved       bool   `json:"approved"` // New field for approval status
 }
 
 //go:embed templates/*
@@ -50,6 +54,12 @@ func main() {
 	}
 
 	r := gin.Default()
+
+	// ADMIN STUFF
+
+	// Define admin username and password
+	adminUsername := os.Getenv("ADMIN_USERNAME")
+	adminPassword := os.Getenv("ADMIN_PASSWORD")
 
 	// GET /quotes - get all quotes
 	r.GET("/quotes", func(c *gin.Context) {
@@ -174,6 +184,14 @@ func main() {
 		c.IndentedJSON(http.StatusOK, gin.H{"category": category, "count": count})
 	})
 
+	// --------------------------------------------------------------------
+
+	// GET METHODS ABOVE
+
+	// POST METHODS BELOW
+
+	// --------------------------------------------------------------------
+
 	// POST /quotes - add a new quote
 	r.POST("/quotes", func(c *gin.Context) {
 		// Parse the request body into a new quote struct
@@ -199,15 +217,8 @@ func main() {
 		var existingID int
 		err := db.QueryRow("SELECT id FROM quotes WHERE text=$1", q.Text).Scan(&existingID)
 		if err == nil {
-			// Quote already exists, return the existing quote
-			var existingQuote quote
-			err := db.QueryRow("SELECT id, text, author, classification FROM quotes WHERE id=$1", existingID).Scan(&existingQuote.ID, &existingQuote.Text, &existingQuote.Author, &existingQuote.Classification)
-			if err != nil {
-				log.Println(err)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve existing quote from the database."})
-				return
-			}
-			c.IndentedJSON(http.StatusOK, existingQuote)
+			// Quote already exists, return an error message
+			c.AbortWithStatusJSON(http.StatusConflict, gin.H{"message": "Identical quote already exists in the database."})
 			return
 		} else if err != sql.ErrNoRows {
 			// Error occurred while querying the database
@@ -215,6 +226,9 @@ func main() {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to check if quote already exists in the database."})
 			return
 		}
+
+		// Set the approved status to false for new quotes
+		q.Approved = false
 
 		// Insert the new quote into the database
 		var id int
@@ -233,7 +247,7 @@ func main() {
 		} else {
 			q.Classification = strings.ToLower(q.Classification) // Convert classification to lowercase
 		}
-		err = db.QueryRow("INSERT INTO quotes (text, author, classification) VALUES ($1, $2, LOWER($3)) RETURNING id", q.Text, q.Author, q.Classification).Scan(&id)
+		err = db.QueryRow("INSERT INTO quotes (text, author, classification, approved) VALUES ($1, $2, LOWER($3), $4) RETURNING id", q.Text, q.Author, q.Classification, q.Approved).Scan(&id)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to insert quote into the database."})
@@ -247,11 +261,110 @@ func main() {
 			Text:           q.Text,
 			Author:         q.Author,
 			Classification: q.Classification,
+			Approved:       q.Approved,
 		}
 
 		// Return the newly created quote in the response
 		c.IndentedJSON(http.StatusCreated, response)
 	})
+
+	// --------------------------------------------------------------------
+
+	// POST METHOD ABOVE
+	
+	// END OF PUBLIC METHODS
+
+	// START OF ADMIN METHODS
+
+	// --------------------------------------------------------------------
+
+	// GET /admin - Admin page to manage unapproved quotes
+	r.GET("/admin", BasicAuth(adminUsername, adminPassword), func(c *gin.Context) {
+		// Query the database for unapproved quotes
+		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE approved = false")
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve unapproved quotes from the database."})
+			return
+		}
+		defer rows.Close()
+
+		quotes := []quote{}
+
+		for rows.Next() {
+			var q quote
+			var author sql.NullString
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification); err != nil {
+				log.Println(err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to scan unapproved quotes from the database."})
+				return
+			}
+
+			if author.Valid {
+				q.Author = author.String
+			} else {
+				q.Author = ""
+			}
+
+			quotes = append(quotes, q)
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error occurred while retrieving unapproved quotes from the database."})
+			return
+		}
+
+		// Render the admin page template with unapproved quotes
+		c.HTML(http.StatusOK, "admin.html.tmpl", gin.H{"quotes": quotes})
+	})
+
+	// POST /admin/approve/:id - Approve a quote
+	r.POST("/admin/approve/:id", func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid quote ID."})
+			return
+		}
+
+		// Update the approved status of the quote in the database
+		_, err = db.Exec("UPDATE quotes SET approved = true WHERE id = $1", id)
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to approve the quote."})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Quote approved successfully."})
+	})
+
+	// POST /admin/dismiss/:id - Dismiss (delete) a quote
+	r.POST("/admin/dismiss/:id", func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid quote ID."})
+			return
+		}
+
+		// Delete the quote from the database
+		_, err = db.Exec("DELETE FROM quotes WHERE id = $1", id)
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to dismiss the quote."})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Quote dismissed successfully."})
+	})
+
+	// --------------------------------------------------------------------
+
+	// ADMIN METHODS ABOVE
+
+	// END OF ALL METHODS
+	// --------------------------------------------------------------------
 
 	// serve static files
 	r.Static("/static", "./static")
@@ -270,5 +383,18 @@ func main() {
 	err = http.ListenAndServe(":"+port, r)
 	if err != nil {
 		log.Fatal(err)
+	}
+}
+
+// BasicAuth middleware function
+func BasicAuth(username, password string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user, pass, ok := c.Request.BasicAuth()
+		if !ok || subtle.ConstantTimeCompare([]byte(user), []byte(username)) != 1 || subtle.ConstantTimeCompare([]byte(pass), []byte(password)) != 1 {
+			c.Header("WWW-Authenticate", "Basic realm=Restricted")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized access"})
+			return
+		}
+		c.Next()
 	}
 }
