@@ -55,6 +55,11 @@
         #dismissal_ {
             color: #FF5733;
         }
+
+        /* Adjustments for spacing */
+        .quote-info {
+            margin-top: 5px;
+        }
     </style>
     <script>
         function approveQuote(id) {
@@ -120,7 +125,7 @@
             {{range .quotes}}
             <li class="quote" data-id="{{.ID}}">
                 <div style="font-size: 18px;">{{.ID}} - {{.Text}}</div>
-                <div style="font-size: 14px; color: #666;">Author: {{.Author}} | Classification: {{.Classification}}</div>
+                <div class="quote-info" style="font-size: 14px; color: #666;">Author: {{.Author}} | Classification: {{.Classification}}</div>
                 <div>
                     <button onclick="approveQuote({{.ID}})">Approve</button>
                     <button onclick="dismissQuote({{.ID}})">Dismiss</button>
