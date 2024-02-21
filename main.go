@@ -217,15 +217,8 @@ func main() {
 		var existingID int
 		err := db.QueryRow("SELECT id FROM quotes WHERE text=$1", q.Text).Scan(&existingID)
 		if err == nil {
-			// Quote already exists, return the existing quote
-			var existingQuote quote
-			err := db.QueryRow("SELECT id, text, author, classification FROM quotes WHERE id=$1", existingID).Scan(&existingQuote.ID, &existingQuote.Text, &existingQuote.Author, &existingQuote.Classification)
-			if err != nil {
-				log.Println(err)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve existing quote from the database."})
-				return
-			}
-			c.IndentedJSON(http.StatusOK, existingQuote)
+			// Quote already exists, return an error message
+			c.AbortWithStatusJSON(http.StatusConflict, gin.H{"message": "Identical quote already exists in the database."})
 			return
 		} else if err != sql.ErrNoRows {
 			// Error occurred while querying the database
@@ -277,6 +270,8 @@ func main() {
 
 	// --------------------------------------------------------------------
 
+	// POST METHOD ABOVE
+	
 	// END OF PUBLIC METHODS
 
 	// START OF ADMIN METHODS
