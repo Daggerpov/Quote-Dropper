@@ -340,6 +340,25 @@ func main() {
 			return
 		}
 
+		// Check if the edited quote text already exists in the database
+		var existingID int
+		err = db.QueryRow("SELECT id FROM quotes WHERE text = $1", editedQuote.EditText).Scan(&existingID)
+		if err == nil {
+			// Edited quote text already exists, dismiss the edited quote
+			_, err = db.Exec("DELETE FROM quotes WHERE id = $1", id)
+			if err != nil {
+				log.Println(err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to dismiss the quote."})
+				return
+			}
+			c.JSON(http.StatusConflict, gin.H{"message": "Edited quote dismissed successfully due to being identical to a previously submitted quote."})
+			return
+		} else if err != sql.ErrNoRows {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to check if edited quote already exists in the database."})
+			return
+		}
+
 		// Update the quote in the database with the edited values
 		_, err = db.Exec("UPDATE quotes SET text = $1, author = $2, classification = $3, approved = true WHERE id = $4",
 			editedQuote.EditText, editedQuote.EditAuthor, editedQuote.EditClassification, id)
@@ -351,7 +370,6 @@ func main() {
 
 		c.JSON(http.StatusOK, gin.H{"message": "Quote approved successfully."})
 	})
-
 
 	// POST /admin/dismiss/:id - Dismiss (delete) a quote
 	r.POST("/admin/dismiss/:id", func(c *gin.Context) {
