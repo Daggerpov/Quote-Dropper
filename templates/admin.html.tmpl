@@ -87,6 +87,18 @@
             color: #333;
             /* Text color */
         }
+
+        /* Override hover effect for dismiss and dismiss all buttons */
+        button.dismiss:hover,
+        button.dismiss-all:hover {
+            background-color: #FF5733;
+        }
+
+        /* Additional styling for dismiss all button */
+        button.dismiss-all {
+            background-color: #FF5733;
+        }
+
     </style>
     <script>
         function approveQuote(id) {
@@ -167,7 +179,7 @@
     <p>No quotes available.</p>
     {{else}}
     <button onclick="approveAllQuotes()" class="approve">Approve All Quotes</button>
-    <button onclick="dismissAllQuotes()" class="dismiss">Dismiss All Quotes</button>
+    <button onclick="dismissAllQuotes()" class="dismiss-all">Dismiss All Quotes</button>
     <ul>
         {{range .quotes}}
         <li class="quote" data-id="{{.ID}}">
