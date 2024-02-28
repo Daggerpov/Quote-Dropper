@@ -179,10 +179,10 @@
                         // Create HTML elements to display each quote
                         const quoteDiv = document.createElement('div');
                         quoteDiv.innerHTML = `
-                    <p>${q.Text}</p>
-                    <p>Author: ${q.Author}</p>
-                    <p>Classification: ${q.Classification}</p>
-                `;
+                <p>${q.text}</p> <!-- Use lowercase 'text' instead of 'Text' -->
+                <p>Author: ${q.author}</p> <!-- Use lowercase 'author' instead of 'Author' -->
+                <p>Classification: ${q.classification}</p> <!-- Use lowercase 'classification' instead of 'Classification' -->
+            `;
                         searchResultsDiv.appendChild(quoteDiv);
                     });
                 })
@@ -190,6 +190,7 @@
                     console.error('Error searching quotes:', error);
                 });
         }
+
     </script>
 </head>
 
