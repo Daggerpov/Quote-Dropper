@@ -168,12 +168,41 @@
                 dismissQuote(id);
             });
         }
-        // JavaScript functions remain unchanged
+        function searchQuotes() {
+            const keyword = document.getElementById('searchInput').value;
+            fetch(`/admin/search/${keyword}`)
+                .then(response => response.json())
+                .then(quotes => {
+                    const searchResultsDiv = document.getElementById('searchResults');
+                    searchResultsDiv.innerHTML = ''; // Clear previous search results
+                    quotes.forEach(q => {
+                        // Create HTML elements to display each quote
+                        const quoteDiv = document.createElement('div');
+                        quoteDiv.innerHTML = `
+                    <p>${q.Text}</p>
+                    <p>Author: ${q.Author}</p>
+                    <p>Classification: ${q.Classification}</p>
+                `;
+                        searchResultsDiv.appendChild(quoteDiv);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error searching quotes:', error);
+                });
+        }
     </script>
 </head>
 
 <body>
     <h1>Admin Page</h1>
+
+    <!-- Search bar -->
+    <input type="text" id="searchInput" placeholder="Search by keyword">
+    <button onclick="searchQuotes()">Search</button>
+    
+    <div id="searchResults">
+        <!-- Search results will be displayed here -->
+    </div>
 
     {{if not .quotes}}
     <p>No quotes available.</p>
