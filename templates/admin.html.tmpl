@@ -207,9 +207,9 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    text: editText,
-                    author: editAuthor,
-                    classification: editClassification
+                    EditText: editText, // <-- Updated key names to match backend expectations
+                    EditAuthor: editAuthor,
+                    EditClassification: editClassification
                 })
             })
                 .then(response => {
