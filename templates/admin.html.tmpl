@@ -179,10 +179,12 @@
                         // Create HTML elements to display each quote
                         const quoteDiv = document.createElement('div');
                         quoteDiv.innerHTML = `
-                <p>${q.text}</p> <!-- Use lowercase 'text' instead of 'Text' -->
-                <p>Author: ${q.author}</p> <!-- Use lowercase 'author' instead of 'Author' -->
-                <p>Classification: ${q.classification}</p> <!-- Use lowercase 'classification' instead of 'Classification' -->
-            `;
+                        <input type="text" id="edit_text_${q.ID}" value="${q.text}" />
+                        <input type="text" id="edit_author_${q.ID}" value="${q.author}" />
+                        <input type="text" id="edit_classification_${q.ID}" value="${q.classification}" />
+                        <button onclick="updateQuote(${q.ID})" class="update">Update</button> <!-- Update button -->
+                        <span id="update_status_${q.ID}"></span>
+                    `;
                         searchResultsDiv.appendChild(quoteDiv);
                     });
                 })
@@ -191,6 +193,40 @@
                 });
         }
 
+        // Function to update a quote
+        function updateQuote(id) {
+            // Get the edited values
+            const editText = document.getElementById('edit_text_' + id).value;
+            const editAuthor = document.getElementById('edit_author_' + id).value;
+            const editClassification = document.getElementById('edit_classification_' + id).value;
+
+            // Send update request to the backend
+            fetch('/admin/edit/' + id, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text: editText,
+                    author: editAuthor,
+                    classification: editClassification
+                })
+            })
+                .then(response => {
+                    if (response.ok) {
+                        // Update UI to indicate successful update
+                        document.getElementById('update_status_' + id).innerText = '✔ Updated';
+                    } else {
+                        // Update UI to indicate failed update
+                        document.getElementById('update_status_' + id).innerText = '✘ Update Failed';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating quote:', error);
+                    // Update UI to indicate error
+                    document.getElementById('update_status_' + id).innerText = '✘ Update Error';
+                });
+        }
     </script>
 </head>
 

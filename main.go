@@ -434,6 +434,47 @@ func main() {
 		c.IndentedJSON(http.StatusOK, quotes)
 	})
 
+	// POST /admin/edit/:id - Edit a quote
+	r.POST("/admin/edit/:id", func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid quote ID."})
+			return
+		}
+
+		// Parse the request body into a new quote struct
+		var editedQuote quote
+		if err := c.ShouldBindJSON(&editedQuote); err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid request body."})
+			return
+		}
+
+		// Check if the edited quote text already exists in the database
+		var existingID int
+		err = db.QueryRow("SELECT id FROM quotes WHERE text = $1 AND id != $2", editedQuote.EditText, id).Scan(&existingID)
+		if err == nil {
+			// Edited quote text already exists, return an error
+			c.AbortWithStatusJSON(http.StatusConflict, gin.H{"message": "Edited quote text already exists in the database."})
+			return
+		} else if err != sql.ErrNoRows {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to check if edited quote already exists in the database."})
+			return
+		}
+
+		// Update the quote in the database with the edited values
+		_, err = db.Exec("UPDATE quotes SET text = $1, author = $2, classification = $3 WHERE id = $4",
+			editedQuote.EditText, editedQuote.EditAuthor, editedQuote.EditClassification, id)
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to update the quote."})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Quote updated successfully."})
+	})
+
 	// --------------------------------------------------------------------
 
 	// ADMIN METHODS ABOVE
