@@ -207,9 +207,9 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    EditText: editText, // <-- Updated key names to match backend expectations
-                    EditAuthor: editAuthor,
-                    EditClassification: editClassification
+                    edit_text: editText, // <-- Updated key names to match backend expectations
+                    edit_author: editAuthor,
+                    edit_classification: editClassification
                 })
             })
                 .then(response => {
@@ -227,6 +227,7 @@
                     document.getElementById('update_status_' + id).innerText = '✘ Update Error';
                 });
         }
+
     </script>
 </head>
 
