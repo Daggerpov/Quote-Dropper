@@ -192,39 +192,45 @@
                     console.error('Error searching quotes:', error);
                 });
         }
+        function editQuote(id) {
+            // Populate input fields with current quote information
+            const text = document.getElementById('edit_text_' + id).value;
+            const author = document.getElementById('edit_author_' + id).value;
+            const classification = document.getElementById('edit_classification_' + id).value;
 
-        // Function to update a quote
+            // Set the current quote information to input fields
+            document.getElementById('edit_text_' + id).value = text;
+            document.getElementById('edit_author_' + id).value = author;
+            document.getElementById('edit_classification_' + id).value = classification;
+        }
+
         function updateQuote(id) {
             // Get the edited values
             const editText = document.getElementById('edit_text_' + id).value;
             const editAuthor = document.getElementById('edit_author_' + id).value;
             const editClassification = document.getElementById('edit_classification_' + id).value;
 
-            // Send update request to the backend
             fetch('/admin/edit/' + id, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    edit_text: editText, // <-- Updated key names to match backend expectations
-                    edit_author: editAuthor,
-                    edit_classification: editClassification
+                    edit_text: editText, // <-- Use 'edit_text' instead of 'text'
+                    edit_author: editAuthor, // <-- Use 'edit_author' instead of 'author'
+                    edit_classification: editClassification // <-- Use 'edit_classification' instead of 'classification'
                 })
             })
                 .then(response => {
                     if (response.ok) {
-                        // Update UI to indicate successful update
-                        document.getElementById('update_status_' + id).innerText = '✔ Updated';
+                        // Update UI to signify successful update
+                        document.getElementById('update_status_' + id).innerText = '✔ Quote updated';
                     } else {
-                        // Update UI to indicate failed update
-                        document.getElementById('update_status_' + id).innerText = '✘ Update Failed';
+                        console.error('Failed to update quote');
                     }
                 })
                 .catch(error => {
                     console.error('Error updating quote:', error);
-                    // Update UI to indicate error
-                    document.getElementById('update_status_' + id).innerText = '✘ Update Error';
                 });
         }
 
