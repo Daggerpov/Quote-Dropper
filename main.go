@@ -114,7 +114,7 @@ func main() {
 		}
 
 		// Fetch the most recent quotes with the specified limit and approved value of true
-		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE approved = true ORDER BY id DESC LIMIT ?", numLimit)
+		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE approved = true ORDER BY id DESC LIMIT $1", numLimit)
 		if err != nil {
 			log.Println(err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch recent approved quotes"})
