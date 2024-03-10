@@ -102,7 +102,7 @@ func main() {
 		c.IndentedJSON(http.StatusOK, quotes)
 	})
 
-	// GET /quotes/recent/:limit - get recent quotes
+	// GET /quotes/recent/:limit - get recent quotes with approved value of true
 	r.GET("/quotes/recent/:limit", func(c *gin.Context) {
 		limit := c.Param("limit")
 
@@ -113,11 +113,11 @@ func main() {
 			return
 		}
 
-		// Fetch the most recent quotes with the specified limit
-		rows, err := db.Query("SELECT id, text, author, classification FROM quotes ORDER BY id DESC LIMIT ?", numLimit)
+		// Fetch the most recent quotes with the specified limit and approved value of true
+		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE approved = true ORDER BY id DESC LIMIT ?", numLimit)
 		if err != nil {
 			log.Println(err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch recent quotes"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch recent approved quotes"})
 			return
 		}
 		defer rows.Close()
