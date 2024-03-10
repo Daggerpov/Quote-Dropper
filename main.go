@@ -102,6 +102,55 @@ func main() {
 		c.IndentedJSON(http.StatusOK, quotes)
 	})
 
+	// GET /quotes/recent/:limit - get recent quotes
+	r.GET("/quotes/recent/:limit", func(c *gin.Context) {
+		limit := c.Param("limit")
+
+		// Validate the limit parameter
+		numLimit, err := strconv.Atoi(limit)
+		if err != nil || numLimit < 1 || numLimit > 5 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid limit parameter. It should be a number between 1 and 5."})
+			return
+		}
+
+		// Fetch the most recent quotes with the specified limit
+		rows, err := db.Query("SELECT id, text, author, classification FROM quotes ORDER BY id DESC LIMIT ?", numLimit)
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch recent quotes"})
+			return
+		}
+		defer rows.Close()
+
+		quotes := []quote{}
+
+		for rows.Next() {
+			var q quote
+			var author sql.NullString
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification); err != nil {
+				log.Println(err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan quote"})
+				return
+			}
+
+			if author.Valid {
+				q.Author = author.String
+			} else {
+				q.Author = ""
+			}
+
+			quotes = append(quotes, q)
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while iterating rows"})
+			return
+		}
+
+		c.JSON(http.StatusOK, quotes)
+	})
+
 	// GET /quotes/:id - get a specific quote by ID
 	r.GET("/quotes/:id", func(c *gin.Context) {
 		idStr := c.Param("id")
