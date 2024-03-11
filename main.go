@@ -490,7 +490,7 @@ func main() {
 		author = strings.ReplaceAll(strings.ToLower(author), "-", " ")
 
 		// Execute search query in the database with a parameterized query to prevent SQL injection
-		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE lower(author) LIKE '%' || $1 || '%' LIMIT 5", author)
+		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE lower(author) LIKE '%' || $1 || '%'", author)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to search quotes from the database."})
