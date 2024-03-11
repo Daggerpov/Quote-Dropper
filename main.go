@@ -483,6 +483,49 @@ func main() {
 		c.IndentedJSON(http.StatusOK, quotes)
 	})
 
+	// GET /admin/search/author/:author - Search quotes by author
+	r.GET("/admin/search/author/:author", func(c *gin.Context) {
+		author := c.Param("author")
+
+		// Execute search query in the database with a parameterized query to prevent SQL injection
+		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE author ILIKE '%' || $1 || '%' LIMIT 5", author)
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to search quotes from the database."})
+			return
+		}
+		defer rows.Close()
+
+		quotes := []quote{}
+
+		for rows.Next() {
+			var q quote
+			var author sql.NullString
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification); err != nil {
+				log.Println(err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to scan search results from the database."})
+				return
+			}
+
+			if author.Valid {
+				q.Author = author.String
+			} else {
+				q.Author = ""
+			}
+
+			quotes = append(quotes, q)
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error occurred while retrieving search results from the database."})
+			return
+		}
+
+		// Return the search results
+		c.IndentedJSON(http.StatusOK, quotes)
+	})
+
 	// POST /admin/edit/:id - Edit a quote
 	r.POST("/admin/edit/:id", func(c *gin.Context) {
 		idStr := c.Param("id")
