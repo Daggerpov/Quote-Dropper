@@ -486,9 +486,11 @@ func main() {
 	// GET /admin/search/author/:author - Search quotes by author
 	r.GET("/admin/search/author/:author", func(c *gin.Context) {
 		author := c.Param("author")
+		// Replace hyphens with spaces and convert to lowercase
+		author = strings.ReplaceAll(strings.ToLower(author), "-", " ")
 
 		// Execute search query in the database with a parameterized query to prevent SQL injection
-		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE author ILIKE '%' || $1 || '%' LIMIT 5", author)
+		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE lower(author) LIKE '%' || $1 || '%' LIMIT 5", author)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to search quotes from the database."})
