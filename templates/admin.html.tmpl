@@ -243,7 +243,7 @@
     <!-- Search bar -->
     <input type="text" id="searchInput" placeholder="Search by keyword">
     <button onclick="searchQuotes()">Search</button>
-    
+
     <div id="searchResults">
         <!-- Search results will be displayed here -->
     </div>
@@ -251,7 +251,7 @@
     {{if not .quotes}}
     <p>No quotes available.</p>
     {{else}}
-    <button onclick="approveAllQuotes()" class="approve">Approve All Quotes</button>
+    <button onclick="approveAllQuotes()" class="approve-all">Approve All Quotes</button>
     <button onclick="dismissAllQuotes()" class="dismiss-all">Dismiss All Quotes</button>
     <ul>
         {{range .quotes}}
@@ -261,10 +261,11 @@
             <input type="text" id="edit_author_{{.ID}}" value="{{.Author}}" />
             <input type="text" id="edit_classification_{{.ID}}" value="{{.Classification}}" />
             <div class="quote-info"> <!-- Added class for styling -->
-                <button onclick="approveQuote({{.ID}})" class="approve">Approve</button>
-                <button onclick="dismissQuote({{.ID}})" class="dismiss">Dismiss</button>
+                <button onclick="approveQuote('{{.ID}}')" class="approve">Approve</button>
+                <button onclick="dismissQuote('{{.ID}}')" class="dismiss">Dismiss</button>
                 <span id="approval_{{.ID}}"></span>
                 <span id="dismissal_{{.ID}}"></span>
+                <button onclick="editQuote('{{.ID}}')">Edit</button> <!-- Add an edit button -->
             </div>
         </li>
         {{end}}
