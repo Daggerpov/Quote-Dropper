@@ -102,6 +102,53 @@ func main() {
 		c.IndentedJSON(http.StatusOK, quotes)
 	})
 
+	// GET /quotes/from/:id - get quotes starting from a specific ID
+	r.GET("/quotes/from/:id", func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid quote ID."})
+			return
+		}
+
+		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE id >= $1 ORDER BY id", id)
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch quotes from the specified ID onwards"})
+			return
+		}
+		defer rows.Close()
+
+		quotes := []quote{}
+
+		for rows.Next() {
+			var q quote
+			var author sql.NullString
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification); err != nil {
+				log.Println(err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan quote"})
+				return
+			}
+
+			if author.Valid {
+				q.Author = author.String
+			} else {
+				q.Author = ""
+			}
+
+			quotes = append(quotes, q)
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while iterating rows"})
+			return
+		}
+
+		c.JSON(http.StatusOK, quotes)
+	})
+
+
 	// GET /quotes/recent/:limit - get recent quotes with approved value of true
 	r.GET("/quotes/recent/:limit", func(c *gin.Context) {
 		limit := c.Param("limit")
