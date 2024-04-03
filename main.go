@@ -148,7 +148,6 @@ func main() {
 		c.JSON(http.StatusOK, quotes)
 	})
 
-
 	// GET /quotes/recent/:limit - get recent quotes with approved value of true
 	r.GET("/quotes/recent/:limit", func(c *gin.Context) {
 		limit := c.Param("limit")
@@ -429,35 +428,8 @@ func main() {
 			return
 		}
 
-		// Get the edited values from the request body
-		var editedQuote quote
-		if err := c.ShouldBindJSON(&editedQuote); err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid request body."})
-			return
-		}
-
-		// Check if the edited quote text already exists in the database
-		var existingID int
-		err = db.QueryRow("SELECT id FROM quotes WHERE text = $1", editedQuote.EditText).Scan(&existingID)
-		if err == nil {
-			// Edited quote text already exists, dismiss the edited quote
-			_, err = db.Exec("DELETE FROM quotes WHERE id = $1", id)
-			if err != nil {
-				log.Println(err)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to dismiss the quote."})
-				return
-			}
-			c.JSON(http.StatusConflict, gin.H{"message": "Edited quote dismissed successfully due to being identical to a previously submitted quote."})
-			return
-		} else if err != sql.ErrNoRows {
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to check if edited quote already exists in the database."})
-			return
-		}
-
-		// Update the quote in the database with the edited values
-		_, err = db.Exec("UPDATE quotes SET text = $1, author = $2, classification = $3, approved = true WHERE id = $4",
-			editedQuote.EditText, editedQuote.EditAuthor, editedQuote.EditClassification, id)
+		// Update the quote in the database to set approved to true
+		_, err = db.Exec("UPDATE quotes SET approved = true WHERE id = $1", id)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to approve the quote."})
