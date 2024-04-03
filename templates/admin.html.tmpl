@@ -278,6 +278,12 @@
         document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('quoteForm').addEventListener('submit', submitQuote);
         });
+
+        function searchOnEnter(event) {
+            if (event.key === 'Enter') {
+                searchQuotes();
+            }
+        }
     </script>
 </head>
 
@@ -303,7 +309,7 @@
     </br></br>
 
     <!-- Search bar -->
-    <input type="text" id="searchInput" placeholder="Search by keyword">
+    <input type="text" id="searchInput" placeholder="Search by keyword" onkeydown="searchOnEnter(event)">
     <button onclick="searchQuotes()">Search</button>
 
     <div id="searchResults">
