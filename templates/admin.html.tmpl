@@ -98,7 +98,6 @@
         button.dismiss-all {
             background-color: #FF5733;
         }
-
     </style>
     <script>
         function approveQuote(id) {
@@ -234,11 +233,66 @@
                 });
         }
 
+        // For adding a quote:
+
+        document.getElementById('quoteForm').addEventListener('submit', function (event) {
+            event.preventDefault(); // Prevent the default form submission
+
+            const quoteText = document.getElementById('quoteText').value;
+            const quoteAuthor = document.getElementById('quoteAuthor').value;
+            const quoteClassification = document.getElementById('quoteClassification').value;
+
+            fetch('/quotes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text: quoteText,
+                    author: quoteAuthor,
+                    classification: quoteClassification
+                })
+            })
+                .then(response => {
+                    if (response.ok) {
+                        // Quote successfully added
+                        alert('Quote successfully added!');
+                        // Clear form fields
+                        document.getElementById('quoteText').value = '';
+                        document.getElementById('quoteAuthor').value = '';
+                        document.getElementById('quoteClassification').value = '';
+                    } else {
+                        // Error adding quote
+                        alert('Failed to add quote. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error adding quote:', error);
+                    alert('An error occurred. Please try again later.');
+                });
+        });
+
+
     </script>
 </head>
 
 <body>
     <h1>Admin Page</h1>
+
+    <form id="quoteForm">
+        <input type="text" id="quoteText" placeholder="Quote Text">
+        <input type="text" id="quoteAuthor" placeholder="Author">
+        <select id="quoteClassification">
+            <option value="wisdom">Wisdom</option>
+            <option value="motivation">Motivation</option>
+            <option value="discipline">Discipline</option>
+            <option value="philosophy">Philosophy</option>
+            <option value="inspiration">Inspiration</option>
+            <option value="upliftment">Upliftment</option>
+            <option value="love">Love</option>
+        </select>
+        <button type="submit">Submit</button>
+    </form>
 
     <!-- Search bar -->
     <input type="text" id="searchInput" placeholder="Search by keyword">
