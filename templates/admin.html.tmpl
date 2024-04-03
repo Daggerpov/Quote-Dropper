@@ -233,8 +233,7 @@
                 });
         }
 
-        // For adding a quote:
-
+        // Function to submit a new quote
         function submitQuote(event) {
             event.preventDefault(); // Prevent the default form submission
 
@@ -272,7 +271,10 @@
                 });
         }
 
-        document.getElementById('quoteForm').addEventListener('submit', submitQuote);
+        // Add event listener for form submission
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('quoteForm').addEventListener('submit', submitQuote);
+        });
     </script>
 </head>
 
