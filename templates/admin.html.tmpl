@@ -242,7 +242,7 @@
             const quoteAuthor = document.getElementById('quoteAuthor').value;
             const quoteClassification = document.getElementById('quoteClassification').value;
 
-            fetch('/quotes', {
+            fetch('https://quote-dropper-production.up.railway.app/quotes', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
