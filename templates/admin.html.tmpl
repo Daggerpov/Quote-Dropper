@@ -299,6 +299,8 @@
         <span id="submission_message"></span> <!-- Display submission message here -->
     </form>
 
+    </br></br>
+
     <!-- Search bar -->
     <input type="text" id="searchInput" placeholder="Search by keyword">
     <button onclick="searchQuotes()">Search</button>
@@ -312,6 +314,10 @@
     {{else}}
     <button onclick="approveAllQuotes()" class="approve-all">Approve All Quotes</button>
     <button onclick="dismissAllQuotes()" class="dismiss-all">Dismiss All Quotes</button>
+
+    </br></br>
+
+
     <ul>
         {{range .quotes}}
         <li class="quote" data-id="{{.ID}}">

@@ -308,8 +308,11 @@ func main() {
 			return
 		}
 
-		// Add a period if there isn't any yet in the 'Text' field
-		if q.Text[len(q.Text)-1] != '.' {
+		// Trim trailing spaces after the last character/punctuation mark
+		q.Text = strings.TrimSpace(q.Text)
+
+		// Add a period if there isn't any yet in the 'Text' field and it doesn't end with a question mark
+		if q.Text[len(q.Text)-1] != '.' && q.Text[len(q.Text)-1] != '?' {
 			q.Text += "."
 		}
 
@@ -367,6 +370,7 @@ func main() {
 		// Return the newly created quote in the response
 		c.IndentedJSON(http.StatusCreated, response)
 	})
+
 
 	// --------------------------------------------------------------------
 
