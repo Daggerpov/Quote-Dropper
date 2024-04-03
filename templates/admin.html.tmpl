@@ -235,14 +235,14 @@
 
         // For adding a quote:
 
-        document.getElementById('quoteForm').addEventListener('submit', function (event) {
+        function submitQuote(event) {
             event.preventDefault(); // Prevent the default form submission
 
             const quoteText = document.getElementById('quoteText').value;
             const quoteAuthor = document.getElementById('quoteAuthor').value;
             const quoteClassification = document.getElementById('quoteClassification').value;
 
-            fetch('https://quote-dropper-production.up.railway.app/quotes', {
+            fetch('/quotes', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -270,9 +270,9 @@
                     console.error('Error adding quote:', error);
                     alert('An error occurred. Please try again later.');
                 });
-        });
+        }
 
-
+        document.getElementById('quoteForm').addEventListener('submit', submitQuote);
     </script>
 </head>
 
