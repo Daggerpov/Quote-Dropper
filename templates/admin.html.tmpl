@@ -256,19 +256,19 @@
                 .then(response => {
                     if (response.ok) {
                         // Quote successfully added
-                        alert('Quote successfully added!');
+                        document.getElementById('submission_message').innerText = 'Quote successfully added!';
                         // Clear form fields
                         document.getElementById('quoteText').value = '';
                         document.getElementById('quoteAuthor').value = '';
                         document.getElementById('quoteClassification').value = '';
                     } else {
                         // Error adding quote
-                        alert('Failed to add quote. Please try again.');
+                        document.getElementById('submission_message').innerText = 'Failed to add quote. Please try again.';
                     }
                 })
                 .catch(error => {
                     console.error('Error adding quote:', error);
-                    alert('An error occurred. Please try again later.');
+                    document.getElementById('submission_message').innerText = 'An error occurred. Please try again later.';
                 });
         }
 
@@ -295,6 +295,7 @@
             <option value="love">Love</option>
         </select>
         <button type="submit">Submit</button>
+        <span id="submission_message"></span> <!-- Display submission message here -->
     </form>
 
     <!-- Search bar -->
