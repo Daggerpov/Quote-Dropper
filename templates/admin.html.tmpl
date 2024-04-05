@@ -169,6 +169,7 @@
                 dismissQuote(id);
             });
         }
+
         function searchQuotes() {
             const keyword = document.getElementById('searchInput').value;
             fetch(`/admin/search/${keyword}`)
@@ -179,13 +180,15 @@
                     quotes.forEach(q => {
                         // Create HTML elements to display each quote
                         const quoteDiv = document.createElement('div');
+                        quoteDiv.className = 'quote'; // Add class name for styling
+                        quoteDiv.dataset.id = q.ID; // Set dataset ID
                         quoteDiv.innerHTML = `
-                    <input type="text" id="edit_text_${q.ID}" value="${q.text}" />
-                    <input type="text" id="edit_author_${q.ID}" value="${q.author}" />
-                    <input type="text" id="edit_classification_${q.ID}" value="${q.classification}" />
-                    <button onclick="updateQuote('{${q.ID}}')" class="update">Update</button> <!-- Add an update button -->
-                    <span id="update_status_${q.ID}"></span>
-                `;
+                <input type="text" id="edit_text_${q.ID}" value="${q.text}" />
+                <input type="text" id="edit_author_${q.ID}" value="${q.author}" />
+                <input type="text" id="edit_classification_${q.ID}" value="${q.classification}" />
+                <button onclick="updateQuote('${q.ID}')" class="update">Update</button>
+                <span id="update_status_${q.ID}"></span>
+            `;
                         searchResultsDiv.appendChild(quoteDiv);
                     });
                 })
