@@ -183,7 +183,7 @@
                     <input type="text" id="edit_text_${q.ID}" value="${q.text}" />
                     <input type="text" id="edit_author_${q.ID}" value="${q.author}" />
                     <input type="text" id="edit_classification_${q.ID}" value="${q.classification}" />
-                    <button onclick="updateQuote('{{.ID}}')" class="update">Update</button> <!-- Add an update button -->
+                    <button onclick="updateQuote('{{q.ID}}')" class="update">Update</button> <!-- Add an update button -->
                     <span id="update_status_${q.ID}"></span>
                 `;
                         searchResultsDiv.appendChild(quoteDiv);
