@@ -28,6 +28,7 @@ type quote struct {
 	Author         string `json:"author"`
 	Classification string `json:"classification"`
 	Approved       bool   `json:"approved"` // New field for approval status
+	Likes          int    `json:"likes"`    // New field for likes count
 
 	// New editable fields
 	EditText           string `json:"edit_text"`
@@ -371,7 +372,35 @@ func main() {
 		c.IndentedJSON(http.StatusCreated, response)
 	})
 
+	// POST /quotes/like/:id - Increment likes for a quote by ID
+	r.POST("/quotes/like/:id", func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid quote ID."})
+			return
+		}
 
+		// Increment the like count for the quote with the given ID
+		err = addLikeToQuote(id, db)
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to like the quote."})
+			return
+		}
+
+		// Fetch the updated quote from the database
+		var updatedQuote quote
+		err = db.QueryRow("SELECT id, text, author, classification, likes FROM quotes WHERE id = $1", id).Scan(&updatedQuote.ID, &updatedQuote.Text, &updatedQuote.Author, &updatedQuote.Classification, &updatedQuote.Likes)
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch updated quote."})
+			return
+		}
+
+		// Return the updated quote with incremented like count
+		c.IndentedJSON(http.StatusOK, updatedQuote)
+	})
 	// --------------------------------------------------------------------
 
 	// POST METHOD ABOVE
@@ -630,4 +659,13 @@ func BasicAuth(username, password string) gin.HandlerFunc {
 		}
 		c.Next()
 	}
+}
+
+// Implement the method to add 1 like to a quote's like attribute
+func addLikeToQuote(quoteID int, db *sql.DB) error {
+	_, err := db.Exec("UPDATE quotes SET likes = likes + 1 WHERE id = $1", quoteID)
+	if err != nil {
+		return err
+	}
+	return nil
 }
