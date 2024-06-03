@@ -391,7 +391,7 @@ func main() {
 
 		// Fetch the updated quote from the database
 		var updatedQuote quote
-		err = db.QueryRow("SELECT id, text, author, classification, likes FROM quotes WHERE id = $1", id).Scan(&updatedQuote.ID, &updatedQuote.Text, &updatedQuote.Author, &updatedQuote.Classification, &updatedQuote.Likes)
+		err = db.QueryRow("SELECT id, text, author, classification, \"Likes\" FROM quotes WHERE id = $1", id).Scan(&updatedQuote.ID, &updatedQuote.Text, &updatedQuote.Author, &updatedQuote.Classification, &updatedQuote.Likes)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch updated quote."})
@@ -664,7 +664,7 @@ func BasicAuth(username, password string) gin.HandlerFunc {
 
 // Implement the method to add 1 like to a quote's like attribute
 func addLikeToQuote(quoteID int, db *sql.DB) error {
-	_, err := db.Exec("UPDATE quotes SET likes = likes + 1 WHERE id = $1", quoteID)
+	_, err := db.Exec("UPDATE quotes SET \"Likes\" = \"Likes\" + 1 WHERE id = $1", quoteID)
 	if err != nil {
 		return err
 	}
