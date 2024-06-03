@@ -334,6 +334,9 @@ func main() {
 		// Set the approved status to false for new quotes
 		q.Approved = false
 
+		// Set likes to 0 for new quotes
+		q.Likes = 0
+
 		// Insert the new quote into the database
 		var id int
 		if q.Author == "" {
@@ -351,7 +354,7 @@ func main() {
 		} else {
 			q.Classification = strings.ToLower(q.Classification) // Convert classification to lowercase
 		}
-		err = db.QueryRow("INSERT INTO quotes (text, author, classification, approved) VALUES ($1, $2, LOWER($3), $4) RETURNING id", q.Text, q.Author, q.Classification, q.Approved).Scan(&id)
+		err = db.QueryRow("INSERT INTO quotes (text, author, classification, approved, likes) VALUES ($1, $2, LOWER($3), $4, $5) RETURNING id", q.Text, q.Author, q.Classification, q.Approved, q.Likes).Scan(&id)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to insert quote into the database."})
@@ -366,6 +369,7 @@ func main() {
 			Author:         q.Author,
 			Classification: q.Classification,
 			Approved:       q.Approved,
+			Likes:          q.Likes, // Include likes in the response
 		}
 
 		// Return the newly created quote in the response
