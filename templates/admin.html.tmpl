@@ -183,12 +183,19 @@
                         quoteDiv.className = 'quote'; // Add class name for styling
                         quoteDiv.dataset.id = q.ID; // Set dataset ID
                         quoteDiv.innerHTML = `
-                <input type="text" id="edit_text_${q.ID}" value="${q.text}" />
-                <input type="text" id="edit_author_${q.ID}" value="${q.author}" />
-                <input type="text" id="edit_classification_${q.ID}" value="${q.classification}" />
-                <button onclick="updateQuote('${q.ID}')" class="update">Update</button>
-                <span id="update_status_${q.ID}"></span>
-            `;
+                            <input type="text" id="edit_text_${q.ID}" value="${q.text}" />
+                            <input type="text" id="edit_author_${q.ID}" value="${q.author}" />
+                            <input type="text" id="edit_classification_${q.ID}" value="${q.classification}" />
+                            <div class="quote-info">
+                                <button onclick="approveQuote('${q.ID}')" class="approve">Approve</button>
+                                <button onclick="dismissQuote('${q.ID}')" class="dismiss">Dismiss</button>
+                                <span id="approval_${q.ID}"></span>
+                                <span id="dismissal_${q.ID}"></span>
+                                <button onclick="updateQuote('${q.ID}')" class="update">Update</button>
+                                <span id="update_status_${q.ID}"></span>
+                                <p>Likes: ${q.likes.Valid ? q.likes.Int64 : 0}</p>
+                            </div>
+                        `;
                         searchResultsDiv.appendChild(quoteDiv);
                     });
                 })
@@ -196,6 +203,7 @@
                     console.error('Error searching quotes:', error);
                 });
         }
+
 
         function editQuote(id) {
             // Populate input fields with current quote information
