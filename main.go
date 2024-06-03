@@ -497,7 +497,7 @@ func main() {
 		keyword := c.Param("keyword")
 
 		// Execute search query in the database with a parameterized query to prevent SQL injection
-		rows, err := db.Query("SELECT id, text, author, classification, Likes FROM quotes WHERE text ILIKE '%' || $1 || '%' LIMIT 5", keyword)
+		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE text ILIKE '%' || $1 || '%' LIMIT 5", keyword)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to search quotes from the database."})
