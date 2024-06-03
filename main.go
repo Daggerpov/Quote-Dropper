@@ -497,7 +497,7 @@ func main() {
 		keyword := c.Param("keyword")
 
 		// Execute search query in the database with a parameterized query to prevent SQL injection
-		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE text ILIKE '%' || $1 || '%' LIMIT 5", keyword)
+		rows, err := db.Query("SELECT id, text, author, classification, Likes FROM quotes WHERE text ILIKE '%' || $1 || '%' LIMIT 5", keyword)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to search quotes from the database."})
@@ -510,7 +510,7 @@ func main() {
 		for rows.Next() {
 			var q quote
 			var author sql.NullString
-			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification); err != nil {
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
 				log.Println(err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to scan search results from the database."})
 				return
