@@ -285,6 +285,29 @@ func main() {
 		c.IndentedJSON(http.StatusOK, gin.H{"category": category, "count": count})
 	})
 
+	// GET /quoteLikes/:id - get the number of likes for a specific quote by ID
+	r.GET("/quoteLikes/:id", func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid quote ID."})
+			return
+		}
+
+		var likes int
+		err = db.QueryRow("SELECT likes FROM quotes WHERE id = $1", id).Scan(&likes)
+		if err == sql.ErrNoRows {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Quote not found."})
+			return
+		} else if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve likes count from the database."})
+			return
+		}
+
+		c.IndentedJSON(http.StatusOK, gin.H{"id": id, "likes": likes})
+	})
+
 	// --------------------------------------------------------------------
 
 	// GET METHODS ABOVE
