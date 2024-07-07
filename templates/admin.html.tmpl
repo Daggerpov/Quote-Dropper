@@ -259,23 +259,23 @@
                     classification: quoteClassification
                 })
             })
-            .then(response => {
-                if (response.ok) {
-                    // Quote successfully added
-                    document.getElementById('submission_message').innerText = 'Quote successfully added!';
-                    // Clear form fields
-                    document.getElementById('quoteText').value = '';
-                    document.getElementById('quoteAuthor').value = '';
-                    document.getElementById('quoteClassification').value = 'wisdom'; // Reset category to "wisdom"
-                } else {
-                    // Error adding quote
-                    document.getElementById('submission_message').innerText = 'Failed to add quote. Please try again.';
-                }
-            })
-            .catch(error => {
-                console.error('Error adding quote:', error);
-                document.getElementById('submission_message').innerText = 'An error occurred. Please try again later.';
-            });
+                .then(response => {
+                    if (response.ok) {
+                        // Quote successfully added
+                        document.getElementById('submission_message').innerText = 'Quote successfully added!';
+                        // Clear form fields
+                        document.getElementById('quoteText').value = '';
+                        document.getElementById('quoteAuthor').value = '';
+                        document.getElementById('quoteClassification').value = 'wisdom'; // Reset category to "wisdom"
+                    } else {
+                        // Error adding quote
+                        document.getElementById('submission_message').innerText = 'Failed to add quote. Please try again.';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error adding quote:', error);
+                    document.getElementById('submission_message').innerText = 'An error occurred. Please try again later.';
+                });
         }
 
 
