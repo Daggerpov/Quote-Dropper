@@ -69,7 +69,7 @@ func main() {
 
 	// GET /quotes - get all quotes
 	r.GET("/quotes", func(c *gin.Context) {
-		rows, err := db.Query("SELECT id, text, author, classification FROM quotes")
+		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes")
 		if err != nil {
 			log.Println(err)
 			log.Fatal(err)
@@ -81,7 +81,7 @@ func main() {
 		for rows.Next() {
 			var q quote
 			var author sql.NullString
-			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification); err != nil {
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, $q.Likes); err != nil {
 				log.Println(err)
 				log.Fatal(err)
 			}
