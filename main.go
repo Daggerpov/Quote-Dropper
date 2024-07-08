@@ -357,8 +357,8 @@ func main() {
 		// Set the approved status to false for new quotes
 		q.Approved = false
 
-		// Set likes to 0 for new quotes
-		q.Likes = 0
+		// Set likes to a random value between 12 and 37 for new quotes
+		q.Likes = rand.Intn(37-12+1) + 12
 
 		// Insert the new quote into the database
 		var id int
