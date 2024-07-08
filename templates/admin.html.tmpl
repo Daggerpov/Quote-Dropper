@@ -185,12 +185,12 @@
                         quoteDiv.innerHTML = `
                 <p>ID: ${q.ID}</p> <!-- Display the ID -->
                 <p>ID: ${q.id}</p> <!-- Display the ID -->
-                <input type="text" id="edit_text_${q.ID}" value="${q.text}" />
-                <input type="text" id="edit_author_${q.ID}" value="${q.author}" />
-                <input type="text" id="edit_classification_${q.ID}" value="${q.classification}" />
+                <input type="text" id="edit_text_${q.id}" value="${q.text}" />
+                <input type="text" id="edit_author_${q.id}" value="${q.author}" />
+                <input type="text" id="edit_classification_${q.id}" value="${q.classification}" />
                 <p>Likes: ${q.likes}</p> <!-- Display the likes count -->
-                <button onclick="updateQuote('${q.ID}')" class="update">Update</button>
-                <span id="update_status_${q.ID}"></span>
+                <button onclick="updateQuote('${q.id}')" class="update">Update</button>
+                <span id="update_status_${q.id}"></span>
             `;
                         searchResultsDiv.appendChild(quoteDiv);
                     });
