@@ -20,6 +20,7 @@ import (
 
 	// for authentication for admin site
 	"crypto/subtle"
+	"math/rand"
 )
 
 type quote struct {
