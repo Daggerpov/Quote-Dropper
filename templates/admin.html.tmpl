@@ -183,6 +183,7 @@
                         quoteDiv.className = 'quote'; // Add class name for styling
                         quoteDiv.dataset.id = q.ID; // Set dataset ID
                         quoteDiv.innerHTML = `
+                <p>ID: ${q.ID}</p> <!-- Display the ID -->
                 <input type="text" id="edit_text_${q.ID}" value="${q.text}" />
                 <input type="text" id="edit_author_${q.ID}" value="${q.author}" />
                 <input type="text" id="edit_classification_${q.ID}" value="${q.classification}" />
