@@ -81,7 +81,7 @@ func main() {
 		for rows.Next() {
 			var q quote
 			var author sql.NullString
-			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, $q.Likes); err != nil {
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
 				log.Println(err)
 				log.Fatal(err)
 			}
