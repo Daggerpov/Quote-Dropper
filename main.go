@@ -69,7 +69,7 @@ func main() {
 
 	// GET /quotes - get all quotes
 	r.GET("/quotes", func(c *gin.Context) {
-		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes")
+		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE approved = true")
 		if err != nil {
 			log.Println(err)
 			log.Fatal(err)
@@ -112,7 +112,7 @@ func main() {
 			return
 		}
 
-		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE id >= $1 ORDER BY id", id)
+		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE id >= $1 AND approved = true ORDER BY id", id)
 		if err != nil {
 			log.Println(err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch quotes from the specified ID onwards"})
@@ -125,7 +125,7 @@ func main() {
 		for rows.Next() {
 			var q quote
 			var author sql.NullString
-			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification); err != nil {
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
 				log.Println(err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan quote"})
 				return
@@ -161,7 +161,7 @@ func main() {
 		}
 
 		// Fetch the most recent quotes with the specified limit and approved value of true
-		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE approved = true ORDER BY id DESC LIMIT $1", numLimit)
+		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE approved = true ORDER BY id DESC LIMIT $1", numLimit)
 		if err != nil {
 			log.Println(err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch recent approved quotes"})
@@ -174,7 +174,7 @@ func main() {
 		for rows.Next() {
 			var q quote
 			var author sql.NullString
-			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification); err != nil {
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
 				log.Println(err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan quote"})
 				return
@@ -208,7 +208,7 @@ func main() {
 		}
 
 		var q quote
-		err = db.QueryRow("SELECT id, text, author, classification FROM quotes WHERE id = $1", id).Scan(&q.ID, &q.Text, &q.Author, &q.Classification)
+		err = db.QueryRow("SELECT id, text, author, classification, likes FROM quotes WHERE approved = TRUE AND id = $1", id).Scan(&q.ID, &q.Text, &q.Author, &q.Classification, &q.Likes)
 		if err == sql.ErrNoRows {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Quote not found."})
 			return
@@ -223,7 +223,7 @@ func main() {
 	r.GET("/quotes/classification=:classification", func(c *gin.Context) {
 		classification := c.Param("classification")
 
-		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE classification = $1", classification)
+		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE classification = $1 AND approved = true", classification)
 		if err != nil {
 			log.Println(err)
 			log.Fatal(err)
@@ -235,7 +235,7 @@ func main() {
 		for rows.Next() {
 			var q quote
 			var author sql.NullString
-			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification); err != nil {
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
 				log.Println(err)
 				log.Fatal(err)
 			}
@@ -263,7 +263,7 @@ func main() {
 		if category == "" || category == "all" {
 			// If category is not specified, retrieve the total count of all quotes
 			var totalCount int
-			err := db.QueryRow("SELECT COUNT(*) FROM quotes").Scan(&totalCount)
+			err := db.QueryRow("SELECT COUNT(*) FROM quotes WHERE approved = true").Scan(&totalCount)
 			if err != nil {
 				log.Println(err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve total quote count from the database."})
@@ -275,7 +275,7 @@ func main() {
 		}
 
 		var count int
-		err := db.QueryRow("SELECT COUNT(*) FROM quotes WHERE classification = $1", strings.ToLower(category)).Scan(&count)
+		err := db.QueryRow("SELECT COUNT(*) FROM quotes WHERE classification = $1 AND approved = true", strings.ToLower(category)).Scan(&count)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve quote count from the database."})
@@ -295,7 +295,7 @@ func main() {
 		}
 
 		var likes int
-		err = db.QueryRow("SELECT likes FROM quotes WHERE id = $1", id).Scan(&likes)
+		err = db.QueryRow("SELECT likes FROM quotes WHERE id = $1 AND approved = true", id).Scan(&likes)
 		if err == sql.ErrNoRows {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Quote not found."})
 			return
@@ -418,7 +418,7 @@ func main() {
 
 		// Fetch the updated quote from the database
 		var updatedQuote quote
-		err = db.QueryRow("SELECT id, text, author, classification, likes FROM quotes WHERE id = $1", id).Scan(&updatedQuote.ID, &updatedQuote.Text, &updatedQuote.Author, &updatedQuote.Classification, &updatedQuote.Likes)
+		err = db.QueryRow("SELECT id, text, author, classification, likes FROM quotes WHERE id = $1 AND approved = true", id).Scan(&updatedQuote.ID, &updatedQuote.Text, &updatedQuote.Author, &updatedQuote.Classification, &updatedQuote.Likes)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch updated quote."})
@@ -448,7 +448,7 @@ func main() {
 
 		// Fetch the updated quote from the database
 		var updatedQuote quote
-		err = db.QueryRow("SELECT id, text, author, classification, likes FROM quotes WHERE id = $1", id).Scan(&updatedQuote.ID, &updatedQuote.Text, &updatedQuote.Author, &updatedQuote.Classification, &updatedQuote.Likes)
+		err = db.QueryRow("SELECT id, text, author, classification, likes FROM quotes WHERE id = $1 AND approved = true", id).Scan(&updatedQuote.ID, &updatedQuote.Text, &updatedQuote.Author, &updatedQuote.Classification, &updatedQuote.Likes)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch updated quote."})
