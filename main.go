@@ -258,6 +258,45 @@ func main() {
 		c.IndentedJSON(http.StatusOK, quotes)
 	})
 
+	// GET /quotes/author=:author - get quotes by author
+	r.GET("/quotes/author=:author", func(c *gin.Context) {
+		author := c.Param("author")
+
+		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE author = $1 AND approved = true", author)
+		if err != nil {
+			log.Println(err)
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		quotes := []quote{}
+
+		for rows.Next() {
+			var q quote
+			var author sql.NullString
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
+				log.Println(err)
+				log.Fatal(err)
+			}
+
+			if author.Valid {
+				q.Author = author.String
+			} else {
+				q.Author = ""
+			}
+
+			quotes = append(quotes, q)
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			log.Fatal(err)
+		}
+
+		c.IndentedJSON(http.StatusOK, quotes)
+	})
+
+
 	// GET /quoteCount?category=:category - get the number of quotes in a given category
 	r.GET("/quoteCount", func(c *gin.Context) {
 		category := c.Query("category")
@@ -472,7 +511,7 @@ func main() {
 	// GET /admin - Admin page to manage unapproved quotes
 	r.GET("/admin", BasicAuth(adminUsername, adminPassword), func(c *gin.Context) {
 		// Query the database for unapproved quotes
-		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE approved = false")
+		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE approved = false")
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve unapproved quotes from the database."})
@@ -485,7 +524,7 @@ func main() {
 		for rows.Next() {
 			var q quote
 			var author sql.NullString
-			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification); err != nil {
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
 				log.Println(err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to scan unapproved quotes from the database."})
 				return
@@ -614,7 +653,7 @@ func main() {
 		for rows.Next() {
 			var q quote
 			var author sql.NullString
-			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification); err != nil {
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
 				log.Println(err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to scan search results from the database."})
 				return
@@ -669,7 +708,8 @@ func main() {
 		}
 
 		// Update the quote in the database with the edited values
-		_, err = db.Exec("UPDATE quotes SET text = $1, author = $2, classification = $3 WHERE id = $4",
+		// ! not sure about following line args:
+		_, err = db.Exec("UPDATE quotes SET text = $1, author = $2, classification = $3, likes = $4 WHERE id = $5",
 			editedQuote.EditText, editedQuote.EditAuthor, editedQuote.EditClassification, id)
 		if err != nil {
 			log.Println(err)
