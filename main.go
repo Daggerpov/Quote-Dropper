@@ -296,6 +296,56 @@ func main() {
 		c.IndentedJSON(http.StatusOK, quotes)
 	})
 
+	// GET /quotes/author=:author/index=:index - get a specific quote by author and index
+	r.GET("/quotes/author=:author/index=:index", func(c *gin.Context) {
+		author := c.Param("author")
+		indexStr := c.Param("index")
+		index, err := strconv.Atoi(indexStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid index parameter"})
+			return
+		}
+
+		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE author = $1 AND approved = true ORDER BY id", author)
+		if err != nil {
+			log.Println(err)
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		quotes := []quote{}
+
+		for rows.Next() {
+			var q quote
+			var author sql.NullString
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
+				log.Println(err)
+				log.Fatal(err)
+			}
+
+			if author.Valid {
+				q.Author = author.String
+			} else {
+				q.Author = ""
+			}
+
+			quotes = append(quotes, q)
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			log.Fatal(err)
+		}
+
+		if index < 0 || index >= len(quotes) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Index out of range"})
+			return
+		}
+
+		c.IndentedJSON(http.StatusOK, quotes[index])
+	})
+
+
 
 	// GET /quoteCount?category=:category - get the number of quotes in a given category
 	r.GET("/quoteCount", func(c *gin.Context) {
