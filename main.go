@@ -426,7 +426,7 @@ func main() {
 		q.Text = strings.TrimSpace(q.Text)
 
 		// Add a period if there isn't any yet in the 'Text' field and it doesn't end with a question mark
-		if q.Text[len(q.Text)-1] != '.' && q.Text[len(q.Text)-1] != '?' {
+		if q.Text[len(q.Text)-1] != '.' && q.Text[len(q.Text)-1] != '?' && q.Text[len(q.Text)-1] != '!' {
 			q.Text += "."
 		}
 
