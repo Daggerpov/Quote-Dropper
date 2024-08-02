@@ -759,7 +759,7 @@ func main() {
 
 		// Update the quote in the database with the edited values
 		// ! not sure about following line args:
-		_, err = db.Exec("UPDATE quotes SET text = $1, author = $2, classification = $3, WHERE id = $4",
+		_, err = db.Exec("UPDATE quotes SET text = $1, author = $2, classification = $3 WHERE id = $4",
 			editedQuote.EditText, editedQuote.EditAuthor, editedQuote.EditClassification, id)
 		if err != nil {
 			log.Println(err)
