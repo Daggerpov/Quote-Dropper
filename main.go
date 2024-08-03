@@ -231,6 +231,7 @@ func main() {
 
 		var q quote
 		var err error
+		var author sql.NullString
 
 		for attempts := 0; attempts < maxAttempts; attempts++ {
 			// Generate a random ID within the range
@@ -240,11 +241,11 @@ func main() {
 			err = db.QueryRow(`
 				SELECT id, text, author, classification, likes 
 				FROM quotes 
-				WHERE id = $1 AND classification = $2 AND approved = TRUE`, randID, classification).Scan(&q.ID, &q.Text, &q.Author, &q.Classification, &q.Likes)
+				WHERE id = $1 AND classification = $2 AND approved = TRUE`, randID, classification).Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes)
 
 			if err == nil {
-				if q.Author.Valid {
-					q.Author = q.Author.String
+				if author.Valid {
+					q.Author = author.String
 				} else {
 					q.Author = ""
 				}
