@@ -220,6 +220,51 @@ func main() {
 		c.IndentedJSON(http.StatusOK, q)
 	})
 
+	// GET /quotes/randomQuote/classification=:classification - get random quote by classification
+	r.GET("/quotes/randomQuote/classification=:classification", func(c *gin.Context) {
+		classification := c.Param("classification")
+
+		// Define the range of IDs to search
+		const maxAttempts = 10
+		const minID = 1
+		const maxID = 500 // Update this value as per your maximum ID
+
+		var q quote
+		var err error
+
+		for attempts := 0; attempts < maxAttempts; attempts++ {
+			// Generate a random ID within the range
+			randID := rand.Intn(maxID-minID+1) + minID
+
+			// Try to fetch the quote with the generated ID
+			err = db.QueryRow(`
+				SELECT id, text, author, classification, likes 
+				FROM quotes 
+				WHERE id = $1 AND classification = $2 AND approved = TRUE`, randID, classification).Scan(&q.ID, &q.Text, &q.Author, &q.Classification, &q.Likes)
+
+			if err == nil {
+				if author.Valid {
+					q.Author = author.String
+				} else {
+					q.Author = ""
+				}
+				// If the quote is found, return it
+				c.IndentedJSON(http.StatusOK, q)
+				return
+			}
+
+			// If the quote is not found or another error occurs, log it and try again
+			if err != sql.ErrNoRows {
+				log.Println(err)
+				log.Fatal(err)
+			}
+		}
+
+		// If no valid quote is found after maximum attempts, return a 404 response
+		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "No random quote found with the specified classification."})
+	})
+
+
 	// GET /quotes/:classification - get quotes by classification
 	r.GET("/quotes/classification=:classification", func(c *gin.Context) {
 		classification := c.Param("classification")
