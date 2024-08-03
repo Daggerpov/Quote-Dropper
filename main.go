@@ -243,8 +243,8 @@ func main() {
 				WHERE id = $1 AND classification = $2 AND approved = TRUE`, randID, classification).Scan(&q.ID, &q.Text, &q.Author, &q.Classification, &q.Likes)
 
 			if err == nil {
-				if author.Valid {
-					q.Author = author.String
+				if q.Author.Valid {
+					q.Author = q.Author.String
 				} else {
 					q.Author = ""
 				}
