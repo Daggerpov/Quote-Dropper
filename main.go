@@ -266,14 +266,33 @@ func main() {
 	})
 
 
-	// GET /quotes/:classification - get quotes by classification
+	// GET /quotes/classification=:classification - get quotes by classification
 	r.GET("/quotes/classification=:classification", func(c *gin.Context) {
 		classification := c.Param("classification")
+		
+		// Extract maxQuoteLength from query parameters, default to -1 (no limit)
+		maxQuoteLengthParam := c.DefaultQuery("maxQuoteLength", "-1")
+		maxQuoteLength, err := strconv.Atoi(maxQuoteLengthParam)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid maxQuoteLength"})
+			return
+		}
 
-		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE classification = $1 AND approved = true", classification)
+		// Prepare the SQL query
+		query := "SELECT id, text, author, classification, likes FROM quotes WHERE classification = $1 AND approved = true"
+		args := []interface{}{classification}
+
+		// Append additional condition if maxQuoteLength is valid
+		if maxQuoteLength >= 0 {
+			query += " AND LENGTH(text) <= $2"
+			args = append(args, maxQuoteLength)
+		}
+
+		rows, err := db.Query(query, args...)
 		if err != nil {
 			log.Println(err)
-			log.Fatal(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database query failed"})
+			return
 		}
 		defer rows.Close()
 
@@ -284,7 +303,8 @@ func main() {
 			var author sql.NullString
 			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
 				log.Println(err)
-				log.Fatal(err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan row"})
+				return
 			}
 
 			if author.Valid {
@@ -298,11 +318,13 @@ func main() {
 
 		if err := rows.Err(); err != nil {
 			log.Println(err)
-			log.Fatal(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Rows error"})
+			return
 		}
 
 		c.IndentedJSON(http.StatusOK, quotes)
 	})
+
 
 	// GET /quotes/author=:author - get quotes by author
 	r.GET("/quotes/author=:author", func(c *gin.Context) {
