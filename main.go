@@ -119,7 +119,7 @@ func main() {
 		// Append additional condition if maxQuoteLength is valid
 		if maxQuoteLength >= 0 {
 			query += " AND LENGTH(text) <= "
-			query += maxQuoteLengthStr
+			query += maxQuoteLengthParam
 		}
 
 		// Log the final query for debugging
