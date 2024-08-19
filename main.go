@@ -332,6 +332,64 @@ func main() {
 		c.IndentedJSON(http.StatusOK, quotes)
 	})
 
+	// GET /quotes/classification=:classification - get quotes by classification // TODO comemnt better
+	r.GET("/quotes/classification=:classification/maxQuoteLength=:maxQuoteLength", func(c *gin.Context) {
+		classification := c.Param("classification")
+		maxQuoteLength := c.Param("maxQuoteLength")
+
+		// Prepare the SQL query
+		query := "SELECT id, text, author, classification, likes FROM quotes WHERE classification = $1 AND approved = true"
+		args := []interface{}{classification}
+
+		// Append additional condition if maxQuoteLength is valid
+		if maxQuoteLength >= 0 {
+			query += " AND LENGTH(text) <= $2"
+			args = append(args, maxQuoteLength)
+		}
+
+		// Log the final query for debugging
+		log.Printf("Executing query: %s with args: %v", query, args)
+		// log.Printf("maxQuoteLength value:")
+		// log.Printf(maxQuoteLength)
+		log.Printf("maxQuoteLength value: %d", maxQuoteLength)
+
+		rows, err := db.Query(query, args...)
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database query failed"})
+			return
+		}
+		defer rows.Close()
+
+		quotes := []quote{}
+
+		for rows.Next() {
+			var q quote
+			var author sql.NullString
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
+				log.Println(err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan row"})
+				return
+			}
+
+			if author.Valid {
+				q.Author = author.String
+			} else {
+				q.Author = ""
+			}
+
+			quotes = append(quotes, q)
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Rows error"})
+			return
+		}
+
+		c.IndentedJSON(http.StatusOK, quotes)
+	})
+
 
 	// GET /quotes/author=:author - get quotes by author
 	r.GET("/quotes/author=:author", func(c *gin.Context) {
