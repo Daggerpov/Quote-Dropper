@@ -288,6 +288,9 @@ func main() {
 			args = append(args, maxQuoteLength)
 		}
 
+		// Log the final query for debugging
+		log.Printf("Executing query: %s with args: %v", query, args)
+
 		rows, err := db.Query(query, args...)
 		if err != nil {
 			log.Println(err)
