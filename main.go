@@ -335,7 +335,14 @@ func main() {
 	// GET /quotes/classification=:classification - get quotes by classification // TODO comemnt better
 	r.GET("/quotes/classification=:classification/maxQuoteLength=:maxQuoteLength", func(c *gin.Context) {
 		classification := c.Param("classification")
-		maxQuoteLength := c.Param("maxQuoteLength")
+		maxQuoteLengthStr := c.Param("maxQuoteLength")
+
+		// Convert maxQuoteLength to an integer
+		maxQuoteLength, err := strconv.Atoi(maxQuoteLengthStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid maxQuoteLength"})
+			return
+		}
 
 		// Prepare the SQL query
 		query := "SELECT id, text, author, classification, likes FROM quotes WHERE classification = $1 AND approved = true"
