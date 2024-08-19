@@ -104,6 +104,64 @@ func main() {
 		c.IndentedJSON(http.StatusOK, quotes)
 	})
 
+	// GET /quotes - get all quotes
+	r.GET("/quotes/maxQuoteLength=:maxQuoteLength", func(c *gin.Context) {
+		// Extract maxQuoteLength from query parameters, default to -1 (no limit)
+		maxQuoteLengthParam := c.DefaultQuery("maxQuoteLength", "-1")
+		maxQuoteLength, err := strconv.Atoi(maxQuoteLengthParam)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid maxQuoteLength"})
+			return
+		}
+
+		query := "SELECT id, text, author, classification, likes FROM quotes WHERE approved = true"
+
+		// Append additional condition if maxQuoteLength is valid
+		if maxQuoteLength >= 0 {
+			query += " AND LENGTH(text) <= $2"
+			args = append(args, maxQuoteLength)
+		}
+
+		// Log the final query for debugging
+		log.Printf("Executing query: %s with args: %v", query, args)
+		// log.Printf("maxQuoteLength value:")
+		// log.Printf(maxQuoteLength)
+		log.Printf("maxQuoteLength value: %d", maxQuoteLength)
+		
+		rows, err := db.Query(query, args...)
+		if err != nil {
+			log.Println(err)
+			log.Fatal(err)
+		}
+		defer rows.Close()
+
+		quotes := []quote{}
+
+		for rows.Next() {
+			var q quote
+			var author sql.NullString
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
+				log.Println(err)
+				log.Fatal(err)
+			}
+
+			if author.Valid {
+				q.Author = author.String
+			} else {
+				q.Author = ""
+			}
+
+			quotes = append(quotes, q)
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			log.Fatal(err)
+		}
+
+		c.IndentedJSON(http.StatusOK, quotes)
+	})
+
 	// GET /quotes/from/:id - get quotes starting from a specific ID
 	r.GET("/quotes/from/:id", func(c *gin.Context) {
 		idStr := c.Param("id")
