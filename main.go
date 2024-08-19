@@ -290,8 +290,10 @@ func main() {
 
 		// Log the final query for debugging
 		log.Printf("Executing query: %s with args: %v", query, args)
-		log.Printf("maxQuoteLength value:")
-		log.Printf(maxQuoteLength)
+		// log.Printf("maxQuoteLength value:")
+		// log.Printf(maxQuoteLength)
+		log.Printf("maxQuoteLength value: %d", maxQuoteLength)
+
 
 		rows, err := db.Query(query, args...)
 		if err != nil {
