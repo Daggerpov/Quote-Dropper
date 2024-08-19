@@ -118,17 +118,17 @@ func main() {
 
 		// Append additional condition if maxQuoteLength is valid
 		if maxQuoteLength >= 0 {
-			query += " AND LENGTH(text) <= $2"
-			args = append(args, maxQuoteLength)
+			query += " AND LENGTH(text) <= "
+			query += maxQuoteLengthStr
 		}
 
 		// Log the final query for debugging
-		log.Printf("Executing query: %s with args: %v", query, args)
+		log.Printf("Executing query: %s with no args. (for all category)", query)
 		// log.Printf("maxQuoteLength value:")
 		// log.Printf(maxQuoteLength)
 		log.Printf("maxQuoteLength value: %d", maxQuoteLength)
 		
-		rows, err := db.Query(query, args...)
+		rows, err := db.Query(query)
 		if err != nil {
 			log.Println(err)
 			log.Fatal(err)
