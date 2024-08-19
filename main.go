@@ -106,9 +106,10 @@ func main() {
 
 	// GET /quotes - get all quotes
 	r.GET("/quotes/maxQuoteLength=:maxQuoteLength", func(c *gin.Context) {
-		// Extract maxQuoteLength from query parameters, default to -1 (no limit)
-		maxQuoteLengthParam := c.DefaultQuery("maxQuoteLength", "-1")
-		maxQuoteLength, err := strconv.Atoi(maxQuoteLengthParam)
+		maxQuoteLengthStr := c.Param("maxQuoteLength")
+
+		// Convert maxQuoteLength to an integer
+		maxQuoteLength, err := strconv.Atoi(maxQuoteLengthStr)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid maxQuoteLength"})
 			return
@@ -119,7 +120,7 @@ func main() {
 		// Append additional condition if maxQuoteLength is valid
 		if maxQuoteLength >= 0 {
 			query += " AND LENGTH(text) <= "
-			query += maxQuoteLengthParam
+			query += maxQuoteLengthStr
 		}
 
 		// Log the final query for debugging
