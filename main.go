@@ -857,7 +857,7 @@ func main() {
 		var err error
 
 		// Execute query with or without the category parameter
-		if category != "" {
+		if category != "" && category != "all" {
 			rows, err = db.Query(query, keyword, category)
 		} else {
 			rows, err = db.Query(query, keyword)
