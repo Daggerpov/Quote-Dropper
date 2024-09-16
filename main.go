@@ -841,9 +841,27 @@ func main() {
 	// GET /admin/search/:keyword - Search quotes by keyword
 	r.GET("/admin/search/:keyword", func(c *gin.Context) {
 		keyword := c.Param("keyword")
+		category := c.Query("category") // Optional category parameter
 
-		// Execute search query in the database with a parameterized query to prevent SQL injection
-		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE text ILIKE '%' || $1 || '%' LIMIT 5", keyword)
+		// SQL query with optional category filter
+		query := "SELECT id, text, author, classification, likes FROM quotes WHERE text ILIKE '%' || $1 || '%'"
+
+		// If category is provided, add it to the WHERE clause
+		if category != "" {
+			query += " AND classification = $2"
+		}
+
+		query += " LIMIT 5"
+
+		var rows *sql.Rows
+		var err error
+
+		// Execute query with or without the category parameter
+		if category != "" {
+			rows, err = db.Query(query, keyword, category)
+		} else {
+			rows, err = db.Query(query, keyword)
+		}
 
 		if err != nil {
 			log.Println(err)
@@ -881,6 +899,7 @@ func main() {
 		// Return the search results
 		c.IndentedJSON(http.StatusOK, quotes)
 	})
+
 
 	// GET /admin/search/author/:author - Search quotes by author
 	r.GET("/admin/search/author/:author", func(c *gin.Context) {
