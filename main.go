@@ -847,7 +847,7 @@ func main() {
 		query := "SELECT id, text, author, classification, likes FROM quotes WHERE text ILIKE '%' || $1 || '%'"
 
 		// If category is provided, add it to the WHERE clause
-		if category != "" {
+		if category != "" && category != "all" {
 			query += " AND classification = $2"
 		}
 
