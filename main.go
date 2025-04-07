@@ -791,11 +791,11 @@ func main() {
 
 	// GET /admin - Admin page to manage unapproved quotes
 	r.GET("/admin", BasicAuth(adminUsername, adminPassword), func(c *gin.Context) {
-		// Query the database for unapproved quotes
-		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE approved = false")
+		log.Println("Admin page requested")
+		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE approved = false ORDER BY id")
 		if err != nil {
 			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve unapproved quotes from the database."})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch unapproved quotes"})
 			return
 		}
 		defer rows.Close()
@@ -807,7 +807,7 @@ func main() {
 			var author sql.NullString
 			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
 				log.Println(err)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to scan unapproved quotes from the database."})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan quote"})
 				return
 			}
 
@@ -822,7 +822,7 @@ func main() {
 
 		if err := rows.Err(); err != nil {
 			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error occurred while retrieving unapproved quotes from the database."})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while iterating rows"})
 			return
 		}
 
@@ -1086,13 +1086,13 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"success": true, "id": id})
 	})
 
-	// GET /admin/feedback - Admin page to view feedback (protected)
+	// GET /admin/feedback - Admin page to view feedback (protected) - API endpoint for JSON data
 	r.GET("/admin/feedback", BasicAuth(adminUsername, adminPassword), func(c *gin.Context) {
-		// Query the database for feedback
+		// Query all feedback from the database, ordered by most recent
 		rows, err := db.Query("SELECT id, type, name, content, image_path, created_at FROM feedback ORDER BY created_at DESC")
 		if err != nil {
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve feedback from the database."})
+			log.Println("Error fetching feedback:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch feedback"})
 			return
 		}
 		defer rows.Close()
@@ -1101,40 +1101,30 @@ func main() {
 
 		for rows.Next() {
 			var f feedback
-			var name, imagePath sql.NullString
-			if err := rows.Scan(&f.ID, &f.Type, &name, &f.Content, &imagePath, &f.CreatedAt); err != nil {
-				log.Println(err)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to scan feedback from the database."})
+			var name sql.NullString // Handle NULL names
+			if err := rows.Scan(&f.ID, &f.Type, &name, &f.Content, &f.ImagePath, &f.CreatedAt); err != nil {
+				log.Println("Error scanning feedback row:", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process feedback data"})
 				return
 			}
 
+			// Handle nullable name field
 			if name.Valid {
 				f.Name = name.String
 			} else {
 				f.Name = ""
 			}
 
-			if imagePath.Valid {
-				f.ImagePath = imagePath.String
-			} else {
-				f.ImagePath = ""
-			}
-
 			feedbackItems = append(feedbackItems, f)
 		}
 
 		if err := rows.Err(); err != nil {
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error occurred while retrieving feedback from the database."})
+			log.Println("Error iterating feedback rows:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 			return
 		}
 
 		c.JSON(http.StatusOK, feedbackItems)
-	})
-
-	// GET /admin/feedback-page - Admin feedback page UI (protected)
-	r.GET("/admin/feedback-page", BasicAuth(adminUsername, adminPassword), func(c *gin.Context) {
-		c.HTML(http.StatusOK, "admin-feedback.html.tmpl", gin.H{})
 	})
 
 	// DELETE /admin/feedback/:id - Delete feedback (protected)

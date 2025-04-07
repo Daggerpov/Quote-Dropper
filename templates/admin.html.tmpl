@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Page</title>
+    <title>Admin Dashboard</title>
     <link rel="icon" type="image/png" href="templates/small-droplet-icon.png">
     <style>
         body {
@@ -19,6 +19,54 @@
             color: #333;
         }
 
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+        }
+        
+        .tab-button {
+            display: inline-block;
+            padding: 12px 20px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: bold;
+            border: none;
+            font-size: 16px;
+        }
+        
+        .tab-button:hover {
+            background-color: #2980b9;
+        }
+        
+        .tab-button.active {
+            background-color: #2c3e50;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Quotes Management Styles */
         ul {
             list-style-type: none;
             padding: 0;
@@ -53,6 +101,19 @@
             background-color: #45a049;
         }
 
+        button.dismiss:hover,
+        button.dismiss-all:hover {
+            background-color: #FF5733;
+        }
+
+        button.dismiss-all {
+            background-color: #FF5733;
+        }
+
+        .update {
+            background-color: #3498db;
+        }
+
         span {
             margin-left: 10px;
         }
@@ -65,68 +126,102 @@
             color: #FF5733;
         }
 
-        /* Adjustments for spacing */
         .quote-info {
             margin-top: 10px;
-            /* Increased margin-top */
         }
 
-        /* Styling for text boxes */
         input[type="text"] {
             width: calc(100% - 32px);
-            /* Adjusted width to account for padding */
             padding: 8px;
-            /* Added padding */
             font-size: 16px;
-            /* Increased font size */
             border: 1px solid #ccc;
-            /* Added border */
             border-radius: 4px;
-            /* Added border-radius */
             margin-bottom: 10px;
-            /* Added margin-bottom */
             color: #333;
-            /* Text color */
         }
 
-        /* Override hover effect for dismiss and dismiss all buttons */
-        button.dismiss:hover,
-        button.dismiss-all:hover {
-            background-color: #FF5733;
-        }
-
-        /* Additional styling for dismiss all button */
-        button.dismiss-all {
-            background-color: #FF5733;
-        }
-
-        .update {
-            background-color: #3498db;
-        }
-        
-        .admin-nav {
+        /* Feedback Management Styles */
+        .feedback-header {
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 20px;
-            justify-content: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            align-items: center;
         }
-        
-        .admin-nav a {
-            display: inline-block;
-            padding: 10px 16px;
-            background-color: #3498db;
-            color: white;
-            text-decoration: none;
+
+        .feedback-type {
+            background-color: #e0e0e0;
+            padding: 5px 10px;
             border-radius: 4px;
-            text-align: center;
+            font-size: 14px;
         }
-        
-        .admin-nav a:hover {
-            background-color: #2980b9;
+
+        .type-general {
+            background-color: #e0e0e0;
+            color: #333;
+        }
+
+        .type-bug {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .type-feature {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .feedback-content {
+            margin: 15px 0;
+            white-space: pre-wrap;
+        }
+
+        .feedback-meta {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .feedback-image {
+            max-width: 100%;
+            max-height: 300px;
+            margin-top: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .empty-message {
+            text-align: center;
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
     </style>
     <script>
+        // Tab navigation
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Add active class to selected tab button
+            event.target.classList.add('active');
+            
+            // Load data for the tab if needed
+            if (tabName === 'feedback') {
+                loadFeedback();
+            }
+        }
+
+        // Quotes Management Functions
         function approveQuote(id) {
             // Get the edited values
             const editText = document.getElementById('edit_text_' + id).value;
@@ -139,9 +234,9 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    edit_text: editText, // <-- Use 'edit_text' instead of 'text'
-                    edit_author: editAuthor, // <-- Use 'edit_author' instead of 'author'
-                    edit_classification: editClassification // <-- Use 'edit_classification' instead of 'classification'
+                    edit_text: editText,
+                    edit_author: editAuthor,
+                    edit_classification: editClassification
                 })
             })
                 .then(response => {
@@ -178,7 +273,6 @@
                     console.error('Error dismissing quote:', error);
                 });
         }
-
 
         function approveAllQuotes() {
             // Call the approveQuote function for each quote on the page
@@ -225,18 +319,6 @@
                 });
         }
 
-        function editQuote(id) {
-            // Populate input fields with current quote information
-            const text = document.getElementById('edit_text_' + id).value;
-            const author = document.getElementById('edit_author_' + id).value;
-            const classification = document.getElementById('edit_classification_' + id).value;
-
-            // Set the current quote information to input fields
-            document.getElementById('edit_text_' + id).value = text;
-            document.getElementById('edit_author_' + id).value = author;
-            document.getElementById('edit_classification_' + id).value = classification;
-        }
-
         function updateQuote(id) {
             // Get the edited values
             const editText = document.getElementById('edit_text_' + id).value;
@@ -249,15 +331,15 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    edit_text: editText, // <-- Use 'edit_text' instead of 'text'
-                    edit_author: editAuthor, // <-- Use 'edit_author' instead of 'author'
-                    edit_classification: editClassification // <-- Use 'edit_classification' instead of 'classification'
+                    edit_text: editText,
+                    edit_author: editAuthor,
+                    edit_classification: editClassification
                 })
             })
                 .then(response => {
                     if (response.ok) {
-                        // Update UI to signify successful update
-                        document.getElementById('update_status_' + id).innerText = '✔ Quote updated';
+                        // Update UI to signify update
+                        document.getElementById('update_status_' + id).innerText = '✔ Updated';
                     } else {
                         console.error('Failed to update quote');
                     }
@@ -267,120 +349,171 @@
                 });
         }
 
-        // Function to submit a new quote
-        function submitQuote(event) {
-            event.preventDefault(); // Prevent the default form submission
+        // Feedback Management Functions
+        function loadFeedback() {
+            const feedbackList = document.getElementById('feedback-list');
+            
+            // Check if feedback is already loaded
+            if (feedbackList.querySelector('ul')) {
+                return;
+            }
 
-            const quoteText = document.getElementById('quoteText').value;
-            const quoteAuthor = document.getElementById('quoteAuthor').value;
-            const quoteClassification = document.getElementById('quoteClassification').value;
-
-            fetch('https://quote-dropper-production.up.railway.app/quotes', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    text: quoteText,
-                    author: quoteAuthor,
-                    classification: quoteClassification
-                })
-            })
+            // Fetch feedback items from the server
+            fetch('/admin/feedback')
                 .then(response => {
                     if (response.ok) {
-                        // Quote successfully added
-                        document.getElementById('submission_message').innerText = 'Quote successfully added!';
-                        // Clear form fields
-                        document.getElementById('quoteText').value = '';
-                        document.getElementById('quoteAuthor').value = '';
-                        document.getElementById('quoteClassification').value = 'wisdom'; // Reset category to "wisdom"
-                    } else {
-                        // Error adding quote
-                        document.getElementById('submission_message').innerText = 'Failed to add quote. Please try again.';
+                        return response.json();
                     }
+                    throw new Error('Failed to load feedback');
+                })
+                .then(data => {
+                    // Clear loading message
+                    feedbackList.innerHTML = '';
+
+                    if (data.length === 0) {
+                        feedbackList.innerHTML = '<div class="empty-message">No feedback submissions found.</div>';
+                        return;
+                    }
+
+                    // Create HTML for each feedback item
+                    const feedbackItems = document.createElement('ul');
+                    
+                    data.forEach(item => {
+                        const li = document.createElement('li');
+                        
+                        // Determine type class
+                        let typeClass = 'type-general';
+                        if (item.type === 'bug') typeClass = 'type-bug';
+                        if (item.type === 'feature') typeClass = 'type-feature';
+                        
+                        // Format date
+                        const date = new Date(item.created_at);
+                        const formattedDate = date.toLocaleString();
+                        
+                        // Create feedback item HTML
+                        li.innerHTML = `
+                            <div class="feedback-header">
+                                <span class="feedback-type ${typeClass}">${capitalizeFirstLetter(item.type)}</span>
+                                <button onclick="deleteFeedback(${item.id})">Delete</button>
+                            </div>
+                            <div class="feedback-meta">
+                                Submitted: ${formattedDate}
+                                ${item.name ? ' by <strong>' + escapeHTML(item.name) + '</strong>' : ''}
+                            </div>
+                            <div class="feedback-content">${escapeHTML(item.content)}</div>
+                            ${item.image_path ? `<img src="/${item.image_path}" alt="Feedback image" class="feedback-image">` : ''}
+                        `;
+                        
+                        feedbackItems.appendChild(li);
+                    });
+                    
+                    feedbackList.appendChild(feedbackItems);
                 })
                 .catch(error => {
-                    console.error('Error adding quote:', error);
-                    document.getElementById('submission_message').innerText = 'An error occurred. Please try again later.';
+                    console.error('Error:', error);
+                    feedbackList.innerHTML = '<div class="empty-message">Error loading feedback. Please try again.</div>';
                 });
         }
 
-
-        // Add event listener for form submission
-        document.addEventListener('DOMContentLoaded', function () {
-            document.getElementById('quoteForm').addEventListener('submit', submitQuote);
-        });
-
-        function searchOnEnter(event) {
-            if (event.key === "Enter") {
-                searchQuotes();
+        function deleteFeedback(id) {
+            if (confirm('Are you sure you want to delete this feedback?')) {
+                fetch(`/admin/feedback/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Reload just the feedback tab content
+                        loadFeedback();
+                    } else {
+                        alert('Failed to delete feedback');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error deleting feedback');
+                });
             }
+        }
+
+        // Helper function to capitalize first letter
+        function capitalizeFirstLetter(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+
+        // Helper function to escape HTML to prevent XSS
+        function escapeHTML(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
     </script>
 </head>
 
 <body>
-    <h1>Admin Page</h1>
+    <div class="container">
+        <h1>Admin Dashboard</h1>
 
-    <div class="admin-nav">
-        <a href="/admin/feedback-page">View User Feedback</a>
-    </div>
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+            <button class="tab-button active" onclick="showTab('quotes')">Quotes Management</button>
+            <button class="tab-button" onclick="showTab('feedback')">Feedback Management</button>
+        </div>
 
-    <form id="quoteForm">
-        <input type="text" id="quoteText" placeholder="Quote Text">
-        <input type="text" id="quoteAuthor" placeholder="Author">
-        <select id="quoteClassification">
-            <option value="wisdom">Wisdom</option>
-            <option value="motivation">Motivation</option>
-            <option value="discipline">Discipline</option>
-            <option value="philosophy">Philosophy</option>
-            <option value="inspiration">Inspiration</option>
-            <option value="upliftment">Upliftment</option>
-            <option value="love">Love</option>
-        </select>
-        <button type="submit">Submit</button>
-        <span id="submission_message"></span> <!-- Display submission message here -->
-    </form>
-
-    </br></br>
-
-    <!-- Search bar -->
-    <input type="text" id="searchInput" placeholder="Search by keyword" onkeydown="searchOnEnter(event)">
-    <button onclick="searchQuotes()">Search</button>
-
-    <div id="searchResults">
-        <!-- Search results will be displayed here -->
-    </div>
-
-    {{if not .quotes}}
-    <p>No quotes available.</p>
-    {{else}}
-    <button onclick="approveAllQuotes()" class="approve-all">Approve All Quotes</button>
-    <button onclick="dismissAllQuotes()" class="dismiss-all">Dismiss All Quotes</button>
-
-    </br></br>
-
-
-    <ul>
-        {{range .quotes}}
-        <li class="quote" data-id="{{.ID}}">
-            <!-- Editable fields -->
-            <input type="text" id="edit_text_{{.ID}}" value="{{.Text}}" />
-            <input type="text" id="edit_author_{{.ID}}" value="{{.Author}}" />
-            <input type="text" id="edit_classification_{{.ID}}" value="{{.Classification}}" />
-            <div class="quote-info"> <!-- Added class for styling -->
-                <button onclick="approveQuote('{{.ID}}')" class="approve">Approve</button>
-                <button onclick="dismissQuote('{{.ID}}')" class="dismiss">Dismiss</button>
-                <span id="approval_{{.ID}}"></span>
-                <span id="dismissal_{{.ID}}"></span>
-                <!-- <button onclick="editQuote('{{.ID}}')">Edit</button> Add an edit button -->
-                <button onclick="updateQuote('{{.ID}}')" class="update">Update</button> <!-- Add an update button -->
-                <span id="update_status_{{.ID}}"></span> <!-- Display update status -->
+        <!-- Quotes Management Tab -->
+        <div id="quotes-tab" class="tab-content active">
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search quotes..." />
+                <button onclick="searchQuotes()" class="update">Search</button>
             </div>
-        </li>
-        {{end}}
-    </ul>
-    {{end}}
+
+            <div id="searchResults">
+                <!-- Search results will appear here -->
+            </div>
+
+            <h2>Pending Quotes</h2>
+            <div class="actions">
+                <button onclick="approveAllQuotes()" class="approve">Approve All</button>
+                <button onclick="dismissAllQuotes()" class="dismiss-all">Dismiss All</button>
+            </div>
+
+            <ul>
+                {{range .quotes}}
+                <li class="quote" data-id="{{.ID}}">
+                    <p>ID: {{.ID}}</p>
+                    <p>Original Text: {{.Text}}</p>
+                    <p>Original Author: {{.Author}}</p>
+                    <p>Original Classification: {{.Classification}}</p>
+                    <p>Likes: {{.Likes}}</p>
+
+                    <div class="quote-info">
+                        <p>Edit Quote:</p>
+                        <input type="text" id="edit_text_{{.ID}}" value="{{.Text}}" />
+                        <input type="text" id="edit_author_{{.ID}}" value="{{.Author}}" />
+                        <input type="text" id="edit_classification_{{.ID}}" value="{{.Classification}}" />
+                    </div>
+
+                    <div class="actions">
+                        <button onclick="approveQuote('{{.ID}}')" class="approve">Approve</button>
+                        <button onclick="dismissQuote('{{.ID}}')" class="dismiss">Dismiss</button>
+                        <span id="approval_{{.ID}}"></span>
+                        <span id="dismissal_{{.ID}}"></span>
+                    </div>
+                </li>
+                {{end}}
+            </ul>
+        </div>
+
+        <!-- Feedback Management Tab -->
+        <div id="feedback-tab" class="tab-content">
+            <div id="feedback-list">
+                <!-- Feedback items will be loaded here -->
+                <div class="empty-message">Loading feedback submissions...</div>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
