@@ -926,6 +926,70 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"success": true, "id": id})
 	})
 
+	// GET /submit-quote - Render quote submission page
+	r.GET("/submit-quote", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "submit-quote.html.tmpl", gin.H{})
+	})
+
+	// POST /submit-quote - Handle quote submission
+	r.POST("/submit-quote", func(c *gin.Context) {
+		// Get form values
+		text := c.PostForm("text")
+		author := c.PostForm("author")
+		classification := c.PostForm("classification")
+
+		// Validate quote text
+		if text == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Quote text is required"})
+			return
+		}
+
+		// Validate classification (category)
+		validCategories := map[string]bool{
+			"wisdom":      true,
+			"motivation":  true,
+			"discipline":  true,
+			"philosophy":  true,
+			"inspiration": true,
+			"upliftment":  true,
+			"love":        true,
+		}
+
+		if !validCategories[classification] {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid quote category"})
+			return
+		}
+
+		// Check for duplicate quotes
+		var existingID int
+		err := db.QueryRow("SELECT id FROM quotes WHERE LOWER(text) = LOWER($1)", text).Scan(&existingID)
+		if err == nil {
+			// Quote with this text already exists
+			c.JSON(http.StatusConflict, gin.H{"error": "This quote already exists in our database"})
+			return
+		} else if err != sql.ErrNoRows {
+			// Some other database error occurred
+			log.Println("Error checking for duplicate quote:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for duplicate quote"})
+			return
+		}
+
+		// Insert quote into database (initially unapproved)
+		var id int
+		err = db.QueryRow(
+			"INSERT INTO quotes (text, author, classification, approved, likes) VALUES ($1, $2, $3, false, 0) RETURNING id",
+			text, author, classification,
+		).Scan(&id)
+
+		if err != nil {
+			log.Println("Error inserting quote:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save quote"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"success": true, "id": id, "message": "Quote submitted successfully and awaiting approval"})
+	})
+
 	// GET /admin - Admin page to manage unapproved quotes
 	r.GET("/admin", BasicAuth(adminUsername, adminPassword), func(c *gin.Context) {
 		log.Println("Admin page requested")
