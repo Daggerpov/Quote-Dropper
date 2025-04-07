@@ -25,6 +25,10 @@ import (
 	// for authentication for admin site
 	"crypto/subtle"
 	"math/rand"
+
+	// for rate limiting
+	"net"
+	"sync"
 )
 
 type quote struct {
@@ -55,6 +59,83 @@ type feedback struct {
 var resources embed.FS
 
 var t = template.Must(template.ParseFS(resources, "templates/*"))
+
+// RateLimiter is a simple rate limiter implementation
+type RateLimiter struct {
+	requests     map[string][]time.Time
+	mu           sync.Mutex
+	maxRequests  int           // Maximum number of requests allowed in the window
+	windowPeriod time.Duration // Time window for rate limiting
+}
+
+// NewRateLimiter creates a new rate limiter instance
+func NewRateLimiter(maxRequests int, windowPeriod time.Duration) *RateLimiter {
+	return &RateLimiter{
+		requests:     make(map[string][]time.Time),
+		maxRequests:  maxRequests,
+		windowPeriod: windowPeriod,
+	}
+}
+
+// Allow checks if a request from a given IP is allowed
+func (rl *RateLimiter) Allow(ip string) bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	now := time.Now()
+
+	// Clean up old requests
+	if _, exists := rl.requests[ip]; exists {
+		var validRequests []time.Time
+		for _, t := range rl.requests[ip] {
+			if now.Sub(t) <= rl.windowPeriod {
+				validRequests = append(validRequests, t)
+			}
+		}
+		rl.requests[ip] = validRequests
+	}
+
+	// Check if the IP has reached the limit
+	if len(rl.requests[ip]) >= rl.maxRequests {
+		return false
+	}
+
+	// Add the current request
+	rl.requests[ip] = append(rl.requests[ip], now)
+	return true
+}
+
+// RateLimitMiddleware is a Gin middleware that implements rate limiting
+func RateLimitMiddleware(rl *RateLimiter) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get client IP
+		ip, _, err := net.SplitHostPort(c.Request.RemoteAddr)
+		if err != nil {
+			ip = c.Request.RemoteAddr
+		}
+
+		// Check for X-Forwarded-For header (common in proxy setups)
+		if forwardedFor := c.Request.Header.Get("X-Forwarded-For"); forwardedFor != "" {
+			// Use the first IP in the list
+			ips := strings.Split(forwardedFor, ",")
+			ip = strings.TrimSpace(ips[0])
+		}
+
+		// Allow all localhost requests (for development)
+		if ip == "127.0.0.1" || ip == "::1" || ip == "localhost" {
+			c.Next()
+			return
+		}
+
+		// Check if the request is allowed
+		if !rl.Allow(ip) {
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "Rate limit exceeded"})
+			return
+		}
+
+		c.Next()
+	}
+}
 
 func main() {
 	dbURL := os.Getenv("DATABASE_URL")
@@ -98,6 +179,12 @@ func main() {
 		log.Println("Error creating uploads directory:", err)
 		log.Fatal(err)
 	}
+
+	// Initialize rate limiter: 60 requests per minute
+	rateLimiter := NewRateLimiter(60, time.Minute)
+
+	// Apply rate limiting middleware to all routes
+	r.Use(RateLimitMiddleware(rateLimiter))
 
 	// ADMIN STUFF
 
@@ -629,14 +716,6 @@ func main() {
 		c.IndentedJSON(http.StatusOK, gin.H{"id": id, "likes": likes})
 	})
 
-	// --------------------------------------------------------------------
-
-	// GET METHODS ABOVE
-
-	// POST METHODS BELOW
-
-	// --------------------------------------------------------------------
-
 	// POST /quotes - add a new quote
 	r.POST("/quotes", func(c *gin.Context) {
 		// Parse the request body into a new quote struct
@@ -779,245 +858,6 @@ func main() {
 		// Return the updated quote with decremented like count
 		c.IndentedJSON(http.StatusOK, updatedQuote)
 	})
-	// --------------------------------------------------------------------
-
-	// POST METHOD ABOVE
-
-	// END OF PUBLIC METHODS
-
-	// START OF ADMIN METHODS
-
-	// --------------------------------------------------------------------
-
-	// GET /admin - Admin page to manage unapproved quotes
-	r.GET("/admin", BasicAuth(adminUsername, adminPassword), func(c *gin.Context) {
-		log.Println("Admin page requested")
-		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE approved = false ORDER BY id")
-		if err != nil {
-			log.Println(err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch unapproved quotes"})
-			return
-		}
-		defer rows.Close()
-
-		quotes := []quote{}
-
-		for rows.Next() {
-			var q quote
-			var author sql.NullString
-			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
-				log.Println(err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan quote"})
-				return
-			}
-
-			if author.Valid {
-				q.Author = author.String
-			} else {
-				q.Author = ""
-			}
-
-			quotes = append(quotes, q)
-		}
-
-		if err := rows.Err(); err != nil {
-			log.Println(err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while iterating rows"})
-			return
-		}
-
-		// Render the admin page template with unapproved quotes
-		c.HTML(http.StatusOK, "admin.html.tmpl", gin.H{"quotes": quotes})
-	})
-
-	// POST /admin/approve/:id - Approve a quote
-	r.POST("/admin/approve/:id", func(c *gin.Context) {
-		idStr := c.Param("id")
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid quote ID."})
-			return
-		}
-
-		// Update the quote in the database to set approved to true
-		_, err = db.Exec("UPDATE quotes SET approved = true WHERE id = $1", id)
-		if err != nil {
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to approve the quote."})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"message": "Quote approved successfully."})
-	})
-
-	// POST /admin/dismiss/:id - Dismiss (delete) a quote
-	r.POST("/admin/dismiss/:id", func(c *gin.Context) {
-		idStr := c.Param("id")
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid quote ID."})
-			return
-		}
-
-		// Delete the quote from the database
-		_, err = db.Exec("DELETE FROM quotes WHERE id = $1", id)
-		if err != nil {
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to dismiss the quote."})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"message": "Quote dismissed successfully."})
-	})
-
-	// GET /admin/search/:keyword - Search quotes by keyword
-	r.GET("/admin/search/:keyword", func(c *gin.Context) {
-		keyword := c.Param("keyword")
-		category := c.Query("category") // Optional category parameter
-
-		// SQL query with optional category filter
-		query := "SELECT id, text, author, classification, likes FROM quotes WHERE text ILIKE '%' || $1 || '%'"
-
-		// If category is provided, add it to the WHERE clause
-		if category != "" && category != "all" {
-			query += " AND classification = $2"
-		}
-
-		query += " LIMIT 5"
-
-		var rows *sql.Rows
-		var err error
-
-		// Execute query with or without the category parameter
-		if category != "" && category != "all" {
-			rows, err = db.Query(query, keyword, category)
-		} else {
-			rows, err = db.Query(query, keyword)
-		}
-
-		if err != nil {
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to search quotes from the database."})
-			return
-		}
-		defer rows.Close()
-
-		quotes := []quote{}
-
-		for rows.Next() {
-			var q quote
-			var author sql.NullString
-			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
-				log.Println(err)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to scan search results from the database."})
-				return
-			}
-
-			if author.Valid {
-				q.Author = author.String
-			} else {
-				q.Author = ""
-			}
-
-			quotes = append(quotes, q)
-		}
-
-		if err := rows.Err(); err != nil {
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error occurred while retrieving search results from the database."})
-			return
-		}
-
-		// Return the search results
-		c.IndentedJSON(http.StatusOK, quotes)
-	})
-
-	// GET /admin/search/author/:author - Search quotes by author
-	r.GET("/admin/search/author/:author", func(c *gin.Context) {
-		author := c.Param("author")
-		// Replace hyphens with spaces and convert to lowercase
-		author = strings.ReplaceAll(strings.ToLower(author), "-", " ")
-
-		// Execute search query in the database with a parameterized query to prevent SQL injection
-		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE lower(author) LIKE '%' || $1 || '%'", author)
-		if err != nil {
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to search quotes from the database."})
-			return
-		}
-		defer rows.Close()
-
-		quotes := []quote{}
-
-		for rows.Next() {
-			var q quote
-			var author sql.NullString
-			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
-				log.Println(err)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to scan search results from the database."})
-				return
-			}
-
-			if author.Valid {
-				q.Author = author.String
-			} else {
-				q.Author = ""
-			}
-
-			quotes = append(quotes, q)
-		}
-
-		if err := rows.Err(); err != nil {
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error occurred while retrieving search results from the database."})
-			return
-		}
-
-		// Return the search results
-		c.IndentedJSON(http.StatusOK, quotes)
-	})
-
-	// POST /admin/edit/:id - Edit a quote
-	r.POST("/admin/edit/:id", func(c *gin.Context) {
-		idStr := c.Param("id")
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid quote ID."})
-			return
-		}
-
-		// Parse the request body into a new quote struct
-		var editedQuote quote
-		if err := c.ShouldBindJSON(&editedQuote); err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid request body."})
-			return
-		}
-
-		// Check if the edited quote text already exists in the database
-		var existingID int
-		err = db.QueryRow("SELECT id FROM quotes WHERE text = $1 AND id != $2", editedQuote.EditText, id).Scan(&existingID)
-		if err == nil {
-			// Edited quote text already exists, return an error
-			c.AbortWithStatusJSON(http.StatusConflict, gin.H{"message": "Edited quote text already exists in the database."})
-			return
-		} else if err != sql.ErrNoRows {
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to check if edited quote already exists in the database."})
-			return
-		}
-
-		// Update the quote in the database with the edited values
-		// ! not sure about following line args:
-		_, err = db.Exec("UPDATE quotes SET text = $1, author = $2, classification = $3 WHERE id = $4",
-			editedQuote.EditText, editedQuote.EditAuthor, editedQuote.EditClassification, id)
-		if err != nil {
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to update the quote."})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"message": "Quote updated successfully."})
-	})
 
 	// GET /submit-feedback - Render feedback submission page
 	r.GET("/submit-feedback", func(c *gin.Context) {
@@ -1084,6 +924,236 @@ func main() {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"success": true, "id": id})
+	})
+
+	// GET /admin - Admin page to manage unapproved quotes
+	r.GET("/admin", BasicAuth(adminUsername, adminPassword), func(c *gin.Context) {
+		log.Println("Admin page requested")
+		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE approved = false ORDER BY id")
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch unapproved quotes"})
+			return
+		}
+		defer rows.Close()
+
+		quotes := []quote{}
+
+		for rows.Next() {
+			var q quote
+			var author sql.NullString
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
+				log.Println(err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan quote"})
+				return
+			}
+
+			if author.Valid {
+				q.Author = author.String
+			} else {
+				q.Author = ""
+			}
+
+			quotes = append(quotes, q)
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while iterating rows"})
+			return
+		}
+
+		// Render the admin page template with unapproved quotes
+		c.HTML(http.StatusOK, "admin.html.tmpl", gin.H{"quotes": quotes})
+	})
+
+	// POST /admin/approve/:id - Approve a quote
+	r.POST("/admin/approve/:id", BasicAuth(adminUsername, adminPassword), func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid quote ID."})
+			return
+		}
+
+		// Update the quote in the database to set approved to true
+		_, err = db.Exec("UPDATE quotes SET approved = true WHERE id = $1", id)
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to approve the quote."})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Quote approved successfully."})
+	})
+
+	// POST /admin/dismiss/:id - Dismiss (delete) a quote
+	r.POST("/admin/dismiss/:id", BasicAuth(adminUsername, adminPassword), func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid quote ID."})
+			return
+		}
+
+		// Delete the quote from the database
+		_, err = db.Exec("DELETE FROM quotes WHERE id = $1", id)
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to dismiss the quote."})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Quote dismissed successfully."})
+	})
+
+	// GET /admin/search/:keyword - Search quotes by keyword
+	r.GET("/admin/search/:keyword", BasicAuth(adminUsername, adminPassword), func(c *gin.Context) {
+		keyword := c.Param("keyword")
+		category := c.Query("category") // Optional category parameter
+
+		// SQL query with optional category filter
+		query := "SELECT id, text, author, classification, likes FROM quotes WHERE text ILIKE '%' || $1 || '%'"
+
+		// If category is provided, add it to the WHERE clause
+		if category != "" && category != "all" {
+			query += " AND classification = $2"
+		}
+
+		query += " LIMIT 5"
+
+		var rows *sql.Rows
+		var err error
+
+		// Execute query with or without the category parameter
+		if category != "" && category != "all" {
+			rows, err = db.Query(query, keyword, category)
+		} else {
+			rows, err = db.Query(query, keyword)
+		}
+
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to search quotes from the database."})
+			return
+		}
+		defer rows.Close()
+
+		quotes := []quote{}
+
+		for rows.Next() {
+			var q quote
+			var author sql.NullString
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
+				log.Println(err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to scan search results from the database."})
+				return
+			}
+
+			if author.Valid {
+				q.Author = author.String
+			} else {
+				q.Author = ""
+			}
+
+			quotes = append(quotes, q)
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error occurred while retrieving search results from the database."})
+			return
+		}
+
+		// Return the search results
+		c.IndentedJSON(http.StatusOK, quotes)
+	})
+
+	// GET /admin/search/author/:author - Search quotes by author
+	r.GET("/admin/search/author/:author", BasicAuth(adminUsername, adminPassword), func(c *gin.Context) {
+		author := c.Param("author")
+		// Replace hyphens with spaces and convert to lowercase
+		author = strings.ReplaceAll(strings.ToLower(author), "-", " ")
+
+		// Execute search query in the database with a parameterized query to prevent SQL injection
+		rows, err := db.Query("SELECT id, text, author, classification FROM quotes WHERE lower(author) LIKE '%' || $1 || '%'", author)
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to search quotes from the database."})
+			return
+		}
+		defer rows.Close()
+
+		quotes := []quote{}
+
+		for rows.Next() {
+			var q quote
+			var author sql.NullString
+			if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes); err != nil {
+				log.Println(err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to scan search results from the database."})
+				return
+			}
+
+			if author.Valid {
+				q.Author = author.String
+			} else {
+				q.Author = ""
+			}
+
+			quotes = append(quotes, q)
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error occurred while retrieving search results from the database."})
+			return
+		}
+
+		// Return the search results
+		c.IndentedJSON(http.StatusOK, quotes)
+	})
+
+	// POST /admin/edit/:id - Edit a quote
+	r.POST("/admin/edit/:id", BasicAuth(adminUsername, adminPassword), func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid quote ID."})
+			return
+		}
+
+		// Parse the request body into a new quote struct
+		var editedQuote quote
+		if err := c.ShouldBindJSON(&editedQuote); err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid request body."})
+			return
+		}
+
+		// Check if the edited quote text already exists in the database
+		var existingID int
+		err = db.QueryRow("SELECT id FROM quotes WHERE text = $1 AND id != $2", editedQuote.EditText, id).Scan(&existingID)
+		if err == nil {
+			// Edited quote text already exists, return an error
+			c.AbortWithStatusJSON(http.StatusConflict, gin.H{"message": "Edited quote text already exists in the database."})
+			return
+		} else if err != sql.ErrNoRows {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to check if edited quote already exists in the database."})
+			return
+		}
+
+		// Update the quote in the database with the edited values
+		// ! not sure about following line args:
+		_, err = db.Exec("UPDATE quotes SET text = $1, author = $2, classification = $3 WHERE id = $4",
+			editedQuote.EditText, editedQuote.EditAuthor, editedQuote.EditClassification, id)
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to update the quote."})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Quote updated successfully."})
 	})
 
 	// GET /admin/feedback - Admin page to view feedback (protected) - API endpoint for JSON data
@@ -1157,20 +1227,13 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"message": "Feedback deleted successfully."})
 	})
 
-	// --------------------------------------------------------------------
-
-	// ADMIN METHODS ABOVE
-
-	// END OF ALL METHODS
-	// --------------------------------------------------------------------
-
-	// serve static files
+	// Set up static file serving
 	r.Static("/static", "./static")
 
-	// Serve uploaded files
+	// Serve uploaded images directly
 	r.Static("/uploads", "./uploads")
 
-	// serve templates
+	// Set up template rendering
 	r.SetHTMLTemplate(t)
 
 	r.GET("/", func(c *gin.Context) {
