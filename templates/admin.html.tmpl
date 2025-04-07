@@ -482,14 +482,7 @@
             <ul>
                 {{range .quotes}}
                 <li class="quote" data-id="{{.ID}}">
-                    <p>ID: {{.ID}}</p>
-                    <p>Original Text: {{.Text}}</p>
-                    <p>Original Author: {{.Author}}</p>
-                    <p>Original Classification: {{.Classification}}</p>
-                    <p>Likes: {{.Likes}}</p>
-
                     <div class="quote-info">
-                        <p>Edit Quote:</p>
                         <input type="text" id="edit_text_{{.ID}}" value="{{.Text}}" />
                         <input type="text" id="edit_author_{{.ID}}" value="{{.Author}}" />
                         <input type="text" id="edit_classification_{{.ID}}" value="{{.Classification}}" />
