@@ -3,14 +3,18 @@ package main
 import (
 	"database/sql"
 	"embed"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	// "errors"
 	"html/template"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
@@ -37,6 +41,16 @@ type quote struct {
 	EditClassification string `json:"edit_classification"`
 }
 
+// Feedback type for handling user feedback
+type feedback struct {
+	ID        int       `json:"id"`
+	Type      string    `json:"type"`       // general, bug, feature
+	Name      string    `json:"name"`       // Optional name/alias
+	Content   string    `json:"content"`    // Feedback content
+	ImagePath string    `json:"image_path"` // Path to uploaded image, if any
+	CreatedAt time.Time `json:"created_at"` // Timestamp
+}
+
 //go:embed templates/*
 var resources embed.FS
 
@@ -55,12 +69,35 @@ func main() {
 	}
 	defer db.Close()
 
+	// Create feedback table if it doesn't exist
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS feedback (
+			id SERIAL PRIMARY KEY,
+			type VARCHAR(50) NOT NULL,
+			name VARCHAR(100),
+			content TEXT NOT NULL,
+			image_path VARCHAR(255),
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		log.Println("Error creating feedback table:", err)
+		log.Fatal(err)
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
 	r := gin.Default()
+
+	// Create uploads directory if it doesn't exist
+	err = os.MkdirAll("./uploads", 0755)
+	if err != nil {
+		log.Println("Error creating uploads directory:", err)
+		log.Fatal(err)
+	}
 
 	// ADMIN STUFF
 
@@ -128,7 +165,7 @@ func main() {
 		// log.Printf("maxQuoteLength value:")
 		// log.Printf(maxQuoteLength)
 		log.Printf("maxQuoteLength value: %d", maxQuoteLength)
-		
+
 		rows, err := db.Query(query)
 		if err != nil {
 			log.Println(err)
@@ -324,11 +361,10 @@ func main() {
 		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "No random quote found with the specified classification."})
 	})
 
-
 	// GET /quotes/classification=:classification - get quotes by classification
 	r.GET("/quotes/classification=:classification", func(c *gin.Context) {
 		classification := c.Param("classification")
-		
+
 		// Extract maxQuoteLength from query parameters, default to -1 (no limit)
 		maxQuoteLengthParam := c.DefaultQuery("maxQuoteLength", "-1")
 		maxQuoteLength, err := strconv.Atoi(maxQuoteLengthParam)
@@ -352,7 +388,6 @@ func main() {
 		// log.Printf("maxQuoteLength value:")
 		// log.Printf(maxQuoteLength)
 		log.Printf("maxQuoteLength value: %d", maxQuoteLength)
-
 
 		rows, err := db.Query(query, args...)
 		if err != nil {
@@ -456,7 +491,6 @@ func main() {
 		c.IndentedJSON(http.StatusOK, quotes)
 	})
 
-
 	// GET /quotes/author=:author - get quotes by author
 	r.GET("/quotes/author=:author", func(c *gin.Context) {
 		author := c.Param("author")
@@ -543,8 +577,6 @@ func main() {
 
 		c.IndentedJSON(http.StatusOK, quotes[index])
 	})
-
-
 
 	// GET /quoteCount?category=:category - get the number of quotes in a given category
 	r.GET("/quoteCount", func(c *gin.Context) {
@@ -900,7 +932,6 @@ func main() {
 		c.IndentedJSON(http.StatusOK, quotes)
 	})
 
-
 	// GET /admin/search/author/:author - Search quotes by author
 	r.GET("/admin/search/author/:author", func(c *gin.Context) {
 		author := c.Param("author")
@@ -988,6 +1019,154 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"message": "Quote updated successfully."})
 	})
 
+	// GET /submit-feedback - Render feedback submission page
+	r.GET("/submit-feedback", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "feedback.html.tmpl", gin.H{})
+	})
+
+	// POST /submit-feedback - Handle feedback submission
+	r.POST("/submit-feedback", func(c *gin.Context) {
+		// Get form values
+		feedbackType := c.PostForm("type")
+		name := c.PostForm("name")
+		content := c.PostForm("content")
+
+		// Validate feedback content
+		if content == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Feedback content is required"})
+			return
+		}
+
+		// Validate feedback type
+		if feedbackType != "general" && feedbackType != "bug" && feedbackType != "feature" {
+			feedbackType = "general" // Default to general if invalid type
+		}
+
+		// Handle image upload if provided
+		var imagePath string
+		file, header, err := c.Request.FormFile("image")
+		if err == nil && header != nil {
+			// Generate a unique filename
+			filename := fmt.Sprintf("%d_%s", time.Now().Unix(), header.Filename)
+			filepath := filepath.Join("uploads", filename)
+
+			// Create the file
+			out, err := os.Create(filepath)
+			if err != nil {
+				log.Println("Error creating file:", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
+				return
+			}
+			defer out.Close()
+
+			// Copy the uploaded file to the destination file
+			_, err = io.Copy(out, file)
+			if err != nil {
+				log.Println("Error copying file:", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
+				return
+			}
+
+			imagePath = filepath
+		}
+
+		// Insert feedback into database
+		var id int
+		err = db.QueryRow(
+			"INSERT INTO feedback (type, name, content, image_path) VALUES ($1, $2, $3, $4) RETURNING id",
+			feedbackType, name, content, imagePath,
+		).Scan(&id)
+
+		if err != nil {
+			log.Println("Error inserting feedback:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save feedback"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"success": true, "id": id})
+	})
+
+	// GET /admin/feedback - Admin page to view feedback (protected)
+	r.GET("/admin/feedback", BasicAuth(adminUsername, adminPassword), func(c *gin.Context) {
+		// Query the database for feedback
+		rows, err := db.Query("SELECT id, type, name, content, image_path, created_at FROM feedback ORDER BY created_at DESC")
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve feedback from the database."})
+			return
+		}
+		defer rows.Close()
+
+		feedbackItems := []feedback{}
+
+		for rows.Next() {
+			var f feedback
+			var name, imagePath sql.NullString
+			if err := rows.Scan(&f.ID, &f.Type, &name, &f.Content, &imagePath, &f.CreatedAt); err != nil {
+				log.Println(err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to scan feedback from the database."})
+				return
+			}
+
+			if name.Valid {
+				f.Name = name.String
+			} else {
+				f.Name = ""
+			}
+
+			if imagePath.Valid {
+				f.ImagePath = imagePath.String
+			} else {
+				f.ImagePath = ""
+			}
+
+			feedbackItems = append(feedbackItems, f)
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error occurred while retrieving feedback from the database."})
+			return
+		}
+
+		c.JSON(http.StatusOK, feedbackItems)
+	})
+
+	// GET /admin/feedback-page - Admin feedback page UI (protected)
+	r.GET("/admin/feedback-page", BasicAuth(adminUsername, adminPassword), func(c *gin.Context) {
+		c.HTML(http.StatusOK, "admin-feedback.html.tmpl", gin.H{})
+	})
+
+	// DELETE /admin/feedback/:id - Delete feedback (protected)
+	r.DELETE("/admin/feedback/:id", BasicAuth(adminUsername, adminPassword), func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid feedback ID."})
+			return
+		}
+
+		// Get image path before deleting
+		var imagePath string
+		err = db.QueryRow("SELECT image_path FROM feedback WHERE id = $1", id).Scan(&imagePath)
+
+		// If there's an image, attempt to delete it
+		if err == nil && imagePath != "" {
+			// Delete the image file (ignoring errors)
+			_ = os.Remove(imagePath)
+		}
+
+		// Delete the feedback from the database
+		_, err = db.Exec("DELETE FROM feedback WHERE id = $1", id)
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete feedback."})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Feedback deleted successfully."})
+	})
+
 	// --------------------------------------------------------------------
 
 	// ADMIN METHODS ABOVE
@@ -997,6 +1176,9 @@ func main() {
 
 	// serve static files
 	r.Static("/static", "./static")
+
+	// Serve uploaded files
+	r.Static("/uploads", "./uploads")
 
 	// serve templates
 	r.SetHTMLTemplate(t)

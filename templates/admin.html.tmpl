@@ -99,6 +99,32 @@
         button.dismiss-all {
             background-color: #FF5733;
         }
+
+        .update {
+            background-color: #3498db;
+        }
+        
+        .admin-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        
+        .admin-nav a {
+            display: inline-block;
+            padding: 10px 16px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .admin-nav a:hover {
+            background-color: #2980b9;
+        }
     </style>
     <script>
         function approveQuote(id) {
@@ -295,6 +321,10 @@
 
 <body>
     <h1>Admin Page</h1>
+
+    <div class="admin-nav">
+        <a href="/admin/feedback-page">View User Feedback</a>
+    </div>
 
     <form id="quoteForm">
         <input type="text" id="quoteText" placeholder="Quote Text">
