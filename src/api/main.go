@@ -102,6 +102,8 @@ func main() {
 	r.Static("/static", "./static")
 	r.Static("/uploads", "./uploads")
 	r.Static("/images", "../../images")
+	// Add templates/images as a static path
+	r.Static("/templates/images", "./templates/images")
 
 	// Set up favicons
 	SetupFavicons(r)
