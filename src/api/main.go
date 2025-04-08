@@ -15,37 +15,46 @@ import (
 )
 
 func main() {
+	// Set Gin to release mode in production
+	if os.Getenv("GIN_MODE") != "debug" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	// Seed the random number generator
 	rand.Seed(time.Now().UnixNano())
 
 	// Get database connection string from environment
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		log.Fatal("DATABASE_URL environment variable not set")
+		log.Println("WARNING: DATABASE_URL environment variable not set, running without database")
+		dbURL = "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
 	}
 
 	// Connect to the database
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		log.Println(err)
-		log.Fatal(err)
-	}
-	defer db.Close()
+		log.Println("Error connecting to database:", err)
+		log.Println("Running without database functionality")
+		db = nil
+	} else {
+		defer db.Close()
 
-	// Create feedback table if it doesn't exist
-	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS feedback (
-			id SERIAL PRIMARY KEY,
-			type VARCHAR(50) NOT NULL,
-			name VARCHAR(100),
-			content TEXT NOT NULL,
-			image_path VARCHAR(255),
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)
-	`)
-	if err != nil {
-		log.Println("Error creating feedback table:", err)
-		log.Fatal(err)
+		// Create feedback table if it doesn't exist
+		_, err = db.Exec(`
+			CREATE TABLE IF NOT EXISTS feedback (
+				id SERIAL PRIMARY KEY,
+				type VARCHAR(50) NOT NULL,
+				name VARCHAR(100),
+				content TEXT NOT NULL,
+				image_path VARCHAR(255),
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+			)
+		`)
+		if err != nil {
+			log.Println("Error creating feedback table:", err)
+			log.Println("Running without database functionality")
+			db = nil
+		}
 	}
 
 	// Get port from environment or use default
