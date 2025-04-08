@@ -289,6 +289,30 @@
                 });
         }
 
+        function deleteQuote(id) {
+            if (confirm('Are you sure you want to delete this quote?')) {
+                fetch('/admin/dismiss/' + id, {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Remove the quote from the UI
+                        const quoteElement = document.querySelector(`.quote[data-id="${id}"]`);
+                        if (quoteElement) {
+                            quoteElement.remove();
+                        }
+                    } else {
+                        console.error('Failed to delete quote');
+                        alert('Failed to delete quote');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting quote:', error);
+                    alert('Error deleting quote');
+                });
+            }
+        }
+
         function approveAllQuotes() {
             // Call the approveQuote function for each quote on the page
             document.querySelectorAll('.quote').forEach(quote => {
@@ -316,15 +340,18 @@
                         // Create HTML elements to display each quote
                         const quoteDiv = document.createElement('div');
                         quoteDiv.className = 'quote'; // Add class name for styling
-                        quoteDiv.dataset.id = q.ID; // Set dataset ID
+                        quoteDiv.dataset.id = q.id; // Set dataset ID
                         quoteDiv.innerHTML = `
                 <p>ID: ${q.id}</p> <!-- Display the ID -->
                 <input type="text" id="edit_text_${q.id}" value="${q.text}" />
                 <input type="text" id="edit_author_${q.id}" value="${q.author}" />
                 <input type="text" id="edit_classification_${q.id}" value="${q.classification}" />
                 <p>Likes: ${q.likes}</p> <!-- Display the likes count -->
-                <button onclick="updateQuote('${q.id}')" class="update">Update</button>
-                <span id="update_status_${q.id}"></span>
+                <div class="actions">
+                    <button onclick="updateQuote('${q.id}')" class="update">Update</button>
+                    <button onclick="deleteQuote('${q.id}')" class="dismiss">Delete</button>
+                    <span id="update_status_${q.id}"></span>
+                </div>
             `;
                         searchResultsDiv.appendChild(quoteDiv);
                     });
