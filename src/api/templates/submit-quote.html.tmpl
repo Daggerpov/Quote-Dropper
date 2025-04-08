@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Quote</title>
+    <link rel="icon" type="image/png" href="/images/small-droplet-icon.png">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f2f2f2;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .quote-form {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            padding: 12px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Submit a Quote</h1>
+        <div class="quote-form">
+            <form id="quoteForm">
+                <div class="form-group">
+                    <label for="quoteText">Quote Text *</label>
+                    <textarea id="quoteText" name="quoteText" placeholder="Enter the quote text..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="author">Author</label>
+                    <input type="text" id="author" name="author" placeholder="Enter the author's name">
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Category *</label>
+                    <select id="category" name="category" required>
+                        <option value="" disabled selected>Select a category</option>
+                        <option value="wisdom">Wisdom</option>
+                        <option value="motivation">Motivation</option>
+                        <option value="discipline">Discipline</option>
+                        <option value="philosophy">Philosophy</option>
+                        <option value="inspiration">Inspiration</option>
+                        <option value="upliftment">Upliftment</option>
+                        <option value="love">Love</option>
+                    </select>
+                </div>
+
+                <button type="submit">Submit Quote</button>
+            </form>
+            <div id="submissionMessage" class="message" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const quoteForm = document.getElementById('quoteForm');
+            const submissionMessage = document.getElementById('submissionMessage');
+
+            quoteForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                // Get form values
+                const quoteText = document.getElementById('quoteText').value;
+                const author = document.getElementById('author').value;
+                const category = document.getElementById('category').value;
+
+                // Client-side validation
+                if (!quoteText.trim()) {
+                    showMessage('Please enter the quote text before submitting.', 'error');
+                    return;
+                }
+
+                if (!category) {
+                    showMessage('Please select a category for the quote.', 'error');
+                    return;
+                }
+
+                // Create data object for submission
+                const formData = new FormData();
+                formData.append('text', quoteText);
+                formData.append('author', author);
+                formData.append('classification', category);
+
+                // Submit quote
+                fetch('/submit-quote', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    return response.json().then(err => {
+                        throw new Error(err.error || 'Failed to submit quote');
+                    });
+                })
+                .then(data => {
+                    // Clear form
+                    quoteForm.reset();
+                    // Show success message
+                    showMessage('Thank you for your quote submission! It will be reviewed by our team.', 'success');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMessage(error.message || 'There was an error submitting your quote. Please try again.', 'error');
+                });
+            });
+
+            function showMessage(message, type) {
+                submissionMessage.textContent = message;
+                submissionMessage.className = `message ${type}`;
+                submissionMessage.style.display = 'block';
+                
+                // Automatically hide the message after 5 seconds
+                setTimeout(() => {
+                    submissionMessage.style.display = 'none';
+                }, 5000);
+            }
+        });
+    </script>
+</body>
+
+</html> 
