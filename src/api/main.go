@@ -75,7 +75,7 @@ func main() {
 
 	// Load templates from the templates directory
 	execDir, _ := os.Getwd()
-	templatePath := filepath.Join(filepath.Dir(execDir), "templates")
+	templatePath := filepath.Join(execDir, "..", "templates")
 	t, err := template.ParseGlob(filepath.Join(templatePath, "*.tmpl"))
 	if err != nil {
 		log.Fatal("Error loading templates:", err)
