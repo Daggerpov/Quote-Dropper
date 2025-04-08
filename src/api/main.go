@@ -74,16 +74,20 @@ func main() {
 	}
 
 	// Load templates from the templates directory
-	execDir, _ := os.Getwd()
-	templatePath := filepath.Join(execDir, "..", "src", "templates")
+	templatePath := "../templates"
 	t, err := template.ParseGlob(filepath.Join(templatePath, "*.tmpl"))
 	if err != nil {
 		log.Printf("Failed with path %s: %v", templatePath, err)
 		// Try with alternate path
-		templatePath = "./src/templates"
+		templatePath = "../../src/templates"
 		t, err = template.ParseGlob(filepath.Join(templatePath, "*.tmpl"))
 		if err != nil {
-			log.Fatal("Error loading templates:", err)
+			// One more attempt with a different path
+			templatePath = "./templates"
+			t, err = template.ParseGlob(filepath.Join(templatePath, "*.tmpl"))
+			if err != nil {
+				log.Fatal("Error loading templates:", err)
+			}
 		}
 	}
 	r.SetHTMLTemplate(t)
