@@ -74,16 +74,16 @@ func main() {
 	}
 
 	// Load templates from the templates directory
-	templatePath := "../templates"
+	templatePath := "./templates"
 	t, err := template.ParseGlob(filepath.Join(templatePath, "*.tmpl"))
 	if err != nil {
 		log.Printf("Failed with path %s: %v", templatePath, err)
 		// Try with alternate path
-		templatePath = "../../src/templates"
+		templatePath = "../templates"
 		t, err = template.ParseGlob(filepath.Join(templatePath, "*.tmpl"))
 		if err != nil {
 			// One more attempt with a different path
-			templatePath = "./templates"
+			templatePath = "./src/api/templates"
 			t, err = template.ParseGlob(filepath.Join(templatePath, "*.tmpl"))
 			if err != nil {
 				log.Fatal("Error loading templates:", err)
@@ -101,7 +101,7 @@ func main() {
 	// Set up static file serving
 	r.Static("/static", "./static")
 	r.Static("/uploads", "./uploads")
-	r.Static("/images", "../images")
+	r.Static("/images", "../../images")
 
 	// Set up favicons
 	SetupFavicons(r)
