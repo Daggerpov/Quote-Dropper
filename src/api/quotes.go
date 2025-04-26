@@ -28,6 +28,9 @@ func SetupQuoteRoutes(r *gin.Engine, db *sql.DB) {
 	// Get recent quotes
 	r.GET("/quotes/recent/:limit", handleGetRecentQuotes(db))
 
+	// Get top quotes (most liked)
+	r.GET("/quotes/top", handleGetTopQuotes(db))
+
 	// Get a specific quote by ID
 	r.GET("/quotes/:id", handleGetQuoteByID(db))
 
@@ -714,4 +717,44 @@ func scanQuotes(rows *sql.Rows) ([]quote, error) {
 	}
 
 	return quotes, nil
+}
+
+// handleGetTopQuotes returns a handler for getting the top (most liked) quotes
+func handleGetTopQuotes(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		category := c.Query("category")
+		
+		var query string
+		var rows *sql.Rows
+		var err error
+		
+		// Default to returning at most 10 quotes
+		limit := 10
+		
+		if category == "" || category == "all" {
+			// Get top quotes across all categories
+			query = "SELECT id, text, author, classification, likes FROM quotes WHERE approved = true ORDER BY likes DESC LIMIT $1"
+			rows, err = db.Query(query, limit)
+		} else {
+			// Get top quotes for a specific category
+			query = "SELECT id, text, author, classification, likes FROM quotes WHERE approved = true AND classification = $1 ORDER BY likes DESC LIMIT $2"
+			rows, err = db.Query(query, strings.ToLower(category), limit)
+		}
+		
+		if err != nil {
+			log.Println("Error fetching top quotes:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch top quotes"})
+			return
+		}
+		defer rows.Close()
+		
+		quotes, err := scanQuotes(rows)
+		if err != nil {
+			log.Println("Error scanning quotes:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process quotes"})
+			return
+		}
+		
+		c.JSON(http.StatusOK, quotes)
+	}
 }
