@@ -35,7 +35,7 @@ func AdminRoutes(r *gin.Engine, db *sql.DB) {
 	r.POST("/admin/dismiss/:id", BasicAuth(adminUsername, adminPassword), handleDismissQuote(db))
 
 	// Search quotes by keyword
-	r.GET("/admin/search/:keyword", BasicAuth(adminUsername, adminPassword), handleSearchQuotes(db))
+	r.GET("/admin/search/:keyword", handleSearchQuotes(db))
 
 	// Search quotes by author
 	r.GET("/admin/search/author/:author", BasicAuth(adminUsername, adminPassword), handleSearchByAuthor(db))
