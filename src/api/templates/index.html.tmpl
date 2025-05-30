@@ -7,28 +7,168 @@
 
     <link rel="icon" type="image/jpeg" href="/templates/images/small-droplet-icon.jpeg">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 20px;
-            padding: 0;
-            background-color: #f2f2f2;
-            text-align: center; /* Center align text */
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
         }
 
         h1 {
-            color: #333;
+            font-size: 3rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
         h2 {
-            color: #666;
+            font-size: 1.5rem;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .region-info {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 40px;
+            font-size: 1.2rem;
+        }
+
+        .api-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        .api-link {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .api-link:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .api-link h3 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .api-link p {
+            opacity: 0.8;
+            font-size: 0.95rem;
+        }
+
+        .emoji {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .footer {
+            margin-top: 60px;
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .api-links {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Daniel's Quote Dropper API says hello.</h1>
-    <h2>This is entirely for internal use, with a locked admin page.</h2>
-    {{ if .Region }}
-    <h2>I'm running in the {{.Region}} region</h2>
-    {{end}}
+    <div class="container">
+        <h1>📝 Daniel's Quote Dropper API</h1>
+        <h2>Welcome to the Quote API</h2>
+        
+        {{ if .Region }}
+        <div class="region-info">
+            🌍 Running in the {{.Region}} region
+        </div>
+        {{end}}
+
+        <div class="api-links">
+            <a href="/quotes" class="api-link">
+                <span class="emoji">📚</span>
+                <h3>All Quotes</h3>
+                <p>Browse all approved quotes in the database</p>
+            </a>
+
+            <a href="/quotes/maxQuoteLength=100" class="api-link">
+                <span class="emoji">✂️</span>
+                <h3>Short Quotes</h3>
+                <p>Quotes with 100 characters or less</p>
+            </a>
+
+            <a href="/quotes/recent/5" class="api-link">
+                <span class="emoji">🆕</span>
+                <h3>Recent Quotes</h3>
+                <p>The 5 most recently added quotes</p>
+            </a>
+
+            <a href="/quotes/classification=motivational" class="api-link">
+                <span class="emoji">💪</span>
+                <h3>Motivational</h3>
+                <p>Inspiring and motivational quotes</p>
+            </a>
+
+            <a href="/quotes/classification=funny" class="api-link">
+                <span class="emoji">😄</span>
+                <h3>Funny Quotes</h3>
+                <p>Humorous and witty quotes</p>
+            </a>
+
+            <a href="/quotes/classification=wisdom" class="api-link">
+                <span class="emoji">🧠</span>
+                <h3>Wisdom</h3>
+                <p>Wise and thoughtful quotes</p>
+            </a>
+
+            <a href="/submit-quote" class="api-link">
+                <span class="emoji">➕</span>
+                <h3>Submit Quote</h3>
+                <p>Add a new quote to the collection</p>
+            </a>
+
+            <a href="/admin" class="api-link">
+                <span class="emoji">⚙️</span>
+                <h3>Admin Panel</h3>
+                <p>Manage quotes and feedback (restricted)</p>
+            </a>
+        </div>
+
+        <div class="footer">
+            <p>This API serves the Quote Droplet mobile app and provides web access to the quote database.</p>
+        </div>
+    </div>
 </body>
 </html>
