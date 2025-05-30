@@ -35,11 +35,72 @@
             font-size: 2.5rem;
             margin-bottom: 10px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .header h1:hover {
+            transform: scale(1.05);
         }
 
         .header p {
             font-size: 1.2rem;
             opacity: 0.9;
+        }
+
+        .search-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .search-box {
+            width: 100%;
+            max-width: 500px;
+            padding: 15px 20px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            outline: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus {
+            background: white;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .search-box::placeholder {
+            color: #666;
+        }
+
+        .navigation {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .nav-link {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            text-decoration: none;
+            margin: 5px 10px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
         }
 
         .stats {
@@ -137,28 +198,6 @@
             font-weight: 500;
         }
 
-        .navigation {
-            text-align: center;
-            margin-top: 40px;
-        }
-
-        .nav-link {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 25px;
-            text-decoration: none;
-            margin: 0 10px;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .nav-link:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
         .empty-state {
             text-align: center;
             color: white;
@@ -176,6 +215,10 @@
             opacity: 0.7;
         }
 
+        .hidden {
+            display: none !important;
+        }
+
         @media (max-width: 768px) {
             .quote-grid {
                 grid-template-columns: 1fr;
@@ -189,6 +232,12 @@
                 flex-direction: column;
                 align-items: flex-start;
             }
+
+            .nav-link {
+                margin: 3px 5px;
+                padding: 10px 16px;
+                font-size: 0.9rem;
+            }
         }
 
         .heart {
@@ -199,22 +248,34 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📝 Quote Dropper</h1>
+            <h1 onclick="window.location.href='/'" style="text-decoration: none;">📝 Quote Dropper</h1>
             <p>{{.Description}}</p>
         </div>
 
+        <div class="search-container">
+            <input type="text" class="search-box" id="searchBox" placeholder="Search quotes by text, author, or category...">
+        </div>
+
+        <div class="navigation">
+            <a href="/quotes" class="nav-link">All Quotes</a>
+            <a href="/quotes/maxQuoteLength=100" class="nav-link">Short Quotes (≤100)</a>
+            <a href="/quotes/maxQuoteLength=50" class="nav-link">Very Short (≤50)</a>
+            <a href="/quotes/recent/5" class="nav-link">Recent Quotes</a>
+            <a href="/" class="nav-link">Home</a>
+        </div>
+
         {{if .Stats}}
-        <div class="stats">
-            <strong>{{.Stats.Count}} quotes found</strong>
+        <div class="stats" id="statsContainer">
+            <strong id="statsCount">{{.Stats.Count}} quotes found</strong>
             {{if .Stats.MaxLength}} • Maximum length: {{.Stats.MaxLength}} characters{{end}}
             {{if .Stats.Classification}} • Category: {{.Stats.Classification}}{{end}}
         </div>
         {{end}}
 
         {{if .Quotes}}
-        <div class="quote-grid">
+        <div class="quote-grid" id="quoteGrid">
             {{range .Quotes}}
-            <div class="quote-card">
+            <div class="quote-card" data-quote-text="{{.Text}}" data-quote-author="{{.Author}}" data-quote-classification="{{.Classification}}">
                 <div class="quote-id">#{{.ID}}</div>
                 <div class="quote-text">"{{.Text}}"</div>
                 <div class="quote-meta">
@@ -228,19 +289,82 @@
             {{end}}
         </div>
         {{else}}
-        <div class="empty-state">
+        <div class="empty-state" id="emptyState">
             <h2>No quotes found</h2>
             <p>Try adjusting your search criteria or browse all quotes.</p>
         </div>
         {{end}}
-
-        <div class="navigation">
-            <a href="/quotes" class="nav-link">All Quotes</a>
-            <a href="/quotes/maxQuoteLength=100" class="nav-link">Short Quotes (≤100)</a>
-            <a href="/quotes/maxQuoteLength=50" class="nav-link">Very Short (≤50)</a>
-            <a href="/quotes/recent/5" class="nav-link">Recent Quotes</a>
-            <a href="/" class="nav-link">Home</a>
-        </div>
     </div>
+
+    <script>
+        // Search functionality
+        const searchBox = document.getElementById('searchBox');
+        const quoteCards = document.querySelectorAll('.quote-card');
+        const statsContainer = document.getElementById('statsContainer');
+        const statsCount = document.getElementById('statsCount');
+        const emptyState = document.getElementById('emptyState');
+        const quoteGrid = document.getElementById('quoteGrid');
+
+        function performSearch() {
+            const searchTerm = searchBox.value.toLowerCase().trim();
+            let visibleCount = 0;
+
+            quoteCards.forEach(card => {
+                const text = card.getAttribute('data-quote-text').toLowerCase();
+                const author = card.getAttribute('data-quote-author').toLowerCase();
+                const classification = card.getAttribute('data-quote-classification').toLowerCase();
+
+                const matches = text.includes(searchTerm) || 
+                               author.includes(searchTerm) || 
+                               classification.includes(searchTerm);
+
+                if (matches || searchTerm === '') {
+                    card.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+
+            // Update stats
+            if (statsContainer) {
+                if (searchTerm === '') {
+                    statsCount.textContent = `{{.Stats.Count}} quotes found`;
+                } else {
+                    statsCount.textContent = `${visibleCount} quotes found`;
+                }
+            }
+
+            // Show/hide empty state
+            if (visibleCount === 0 && searchTerm !== '') {
+                if (emptyState) {
+                    emptyState.classList.remove('hidden');
+                    emptyState.querySelector('h2').textContent = 'No quotes match your search';
+                    emptyState.querySelector('p').textContent = 'Try different keywords or clear your search.';
+                }
+                if (quoteGrid) {
+                    quoteGrid.style.display = 'none';
+                }
+            } else {
+                if (emptyState) {
+                    emptyState.classList.add('hidden');
+                }
+                if (quoteGrid) {
+                    quoteGrid.style.display = 'grid';
+                }
+            }
+        }
+
+        // Add event listener for real-time search
+        searchBox.addEventListener('input', performSearch);
+
+        // Add keyboard shortcut for search (Ctrl/Cmd + K)
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                searchBox.focus();
+            }
+        });
+    </script>
 </body>
 </html> 
