@@ -31,6 +31,12 @@
             font-size: 3rem;
             margin-bottom: 20px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        h1:hover {
+            transform: scale(1.05);
         }
 
         h2 {
@@ -107,7 +113,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📝 Daniel's Quote Dropper API</h1>
+        <h1 onclick="window.location.href='/'" style="text-decoration: none;">📝 Daniel's Quote Dropper API</h1>
         <h2>Welcome to the Quote API</h2>
         
         {{ if .Region }}
