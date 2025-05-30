@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Quote Dropper</title>
+    <link rel="icon" type="image/jpeg" href="/templates/images/small-droplet-icon.jpeg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .stats {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .quote-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .quote-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quote-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .quote-card::before {
+            content: '"';
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            font-size: 6rem;
+            color: #667eea;
+            opacity: 0.1;
+            font-family: serif;
+        }
+
+        .quote-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+            font-style: italic;
+        }
+
+        .quote-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .quote-author {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1rem;
+        }
+
+        .quote-classification {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .quote-likes {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .quote-id {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .navigation {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .nav-link {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            text-decoration: none;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: white;
+            padding: 60px 20px;
+        }
+
+        .empty-state h2 {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+            opacity: 0.7;
+        }
+
+        @media (max-width: 768px) {
+            .quote-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .quote-meta {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        .heart {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📝 Quote Dropper</h1>
+            <p>{{.Description}}</p>
+        </div>
+
+        {{if .Stats}}
+        <div class="stats">
+            <strong>{{.Stats.Count}} quotes found</strong>
+            {{if .Stats.MaxLength}} • Maximum length: {{.Stats.MaxLength}} characters{{end}}
+            {{if .Stats.Classification}} • Category: {{.Stats.Classification}}{{end}}
+        </div>
+        {{end}}
+
+        {{if .Quotes}}
+        <div class="quote-grid">
+            {{range .Quotes}}
+            <div class="quote-card">
+                <div class="quote-id">#{{.ID}}</div>
+                <div class="quote-text">"{{.Text}}"</div>
+                <div class="quote-meta">
+                    <div class="quote-author">— {{if .Author}}{{.Author}}{{else}}Unknown{{end}}</div>
+                    <div class="quote-classification">{{.Classification}}</div>
+                    <div class="quote-likes">
+                        <span class="heart">♥</span> {{.Likes}}
+                    </div>
+                </div>
+            </div>
+            {{end}}
+        </div>
+        {{else}}
+        <div class="empty-state">
+            <h2>No quotes found</h2>
+            <p>Try adjusting your search criteria or browse all quotes.</p>
+        </div>
+        {{end}}
+
+        <div class="navigation">
+            <a href="/quotes" class="nav-link">All Quotes</a>
+            <a href="/quotes/maxQuoteLength=100" class="nav-link">Short Quotes (≤100)</a>
+            <a href="/quotes/maxQuoteLength=50" class="nav-link">Very Short (≤50)</a>
+            <a href="/quotes/recent/5" class="nav-link">Recent Quotes</a>
+            <a href="/" class="nav-link">Home</a>
+        </div>
+    </div>
+</body>
+</html> 
