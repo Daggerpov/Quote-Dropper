@@ -691,30 +691,69 @@ func handleGetQuoteByAuthorAndIndex(db *sql.DB) gin.HandlerFunc {
 		indexStr := c.Param("index")
 		index, err := strconv.Atoi(indexStr)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid index parameter"})
+			if isBrowserRequest(c) {
+				c.HTML(http.StatusBadRequest, "quotes.html.tmpl", QuotePageData{
+					Title:       "Invalid Request",
+					Description: "Invalid index parameter",
+					Quotes:      []quote{},
+				})
+			} else {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid index parameter"})
+			}
 			return
 		}
 
 		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE author = $1 AND approved = true ORDER BY id", author)
 		if err != nil {
 			log.Println(err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database query failed"})
+			if isBrowserRequest(c) {
+				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
+					Title:       "Error",
+					Description: "Database query failed",
+					Quotes:      []quote{},
+				})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database query failed"})
+			}
 			return
 		}
 		defer rows.Close()
 
 		quotes, err := scanQuotes(rows)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process quotes"})
+			if isBrowserRequest(c) {
+				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
+					Title:       "Error",
+					Description: "Failed to process quotes",
+					Quotes:      []quote{},
+				})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process quotes"})
+			}
 			return
 		}
 
 		if index < 0 || index >= len(quotes) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Index out of range"})
+			if isBrowserRequest(c) {
+				c.HTML(http.StatusBadRequest, "quotes.html.tmpl", QuotePageData{
+					Title:       "Index Out of Range",
+					Description: "The specified index is out of range for quotes by " + author,
+					Quotes:      []quote{},
+				})
+			} else {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Index out of range"})
+			}
 			return
 		}
 
-		c.IndentedJSON(http.StatusOK, quotes[index])
+		if isBrowserRequest(c) {
+			stats := &QuoteStats{Count: 1}
+			title := "Quote by " + author + " (Index " + indexStr + ")"
+			description := "Quote #" + strconv.Itoa(index) + " by " + author
+			renderQuotesHTML(c, []quote{quotes[index]}, title, description, stats)
+		} else {
+			c.IndentedJSON(http.StatusOK, quotes[index])
+		}
 	}
 }
 
