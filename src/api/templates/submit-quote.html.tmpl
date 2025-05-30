@@ -19,10 +19,40 @@
             color: #333;
         }
 
+        h1 {
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        h1:hover {
+            transform: scale(1.05);
+        }
+
         .container {
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
+        }
+
+        .navigation {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .nav-link {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            margin: 5px 10px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
         }
 
         .quote-form {
@@ -93,7 +123,14 @@
 
 <body>
     <div class="container">
-        <h1>Submit a Quote</h1>
+        <h1 onclick="window.location.href='/'" style="text-decoration: none;">Submit a Quote</h1>
+        
+        <div class="navigation">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/quotes" class="nav-link">Browse Quotes</a>
+            <a href="/submit-feedback" class="nav-link">Submit Feedback</a>
+        </div>
+
         <div class="quote-form">
             <form id="quoteForm">
                 <div class="form-group">
