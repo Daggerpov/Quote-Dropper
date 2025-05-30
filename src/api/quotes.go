@@ -874,7 +874,7 @@ func handleAddQuote(db *sql.DB) gin.HandlerFunc {
 		} else {
 			q.Classification = strings.ToLower(q.Classification) // Convert classification to lowercase
 		}
-		err = db.QueryRow("INSERT INTO quotes (text, author, classification, approved, likes) VALUES ($1, $2, LOWER($3), $4, $5) RETURNING id", q.Text, q.Author, q.Classification, q.Approved, q.Likes).Scan(&id)
+		err = db.QueryRow("INSERT INTO quotes (text, author, classification, approved, likes, submitter_name) VALUES ($1, $2, LOWER($3), $4, $5, $6) RETURNING id", q.Text, q.Author, q.Classification, q.Approved, q.Likes, q.SubmitterName).Scan(&id)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to insert quote into the database."})
@@ -889,7 +889,8 @@ func handleAddQuote(db *sql.DB) gin.HandlerFunc {
 			Author:         q.Author,
 			Classification: q.Classification,
 			Approved:       q.Approved,
-			Likes:          q.Likes, // Include likes in the response
+			Likes:          q.Likes,         // Include likes in the response
+			SubmitterName:  q.SubmitterName, // Include submitter name in the response
 		}
 
 		// Return the newly created quote in the response
@@ -968,6 +969,7 @@ func handleSubmitQuote(db *sql.DB) gin.HandlerFunc {
 		text := c.PostForm("text")
 		author := c.PostForm("author")
 		classification := c.PostForm("classification")
+		submitterName := c.PostForm("submitter_name")
 
 		// Validate quote text
 		if text == "" {
@@ -1008,8 +1010,8 @@ func handleSubmitQuote(db *sql.DB) gin.HandlerFunc {
 		// Insert quote into database (initially unapproved)
 		var id int
 		err = db.QueryRow(
-			"INSERT INTO quotes (text, author, classification, approved, likes) VALUES ($1, $2, $3, false, 0) RETURNING id",
-			text, author, classification,
+			"INSERT INTO quotes (text, author, classification, approved, likes, submitter_name) VALUES ($1, $2, $3, false, 0, $4) RETURNING id",
+			text, author, classification, submitterName,
 		).Scan(&id)
 
 		if err != nil {
