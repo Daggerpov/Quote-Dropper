@@ -95,6 +95,9 @@ func SetupQuoteRoutes(r *gin.Engine, db *sql.DB) {
 	// Get quote count by category
 	r.GET("/quoteCount", handleGetQuoteCount(db))
 
+	// Get all available categories
+	r.GET("/categories", handleGetCategories(db))
+
 	// Get likes for a specific quote
 	r.GET("/quoteLikes/:id", handleGetQuoteLikes(db))
 
@@ -1100,5 +1103,37 @@ func handleGetTopQuotes(db *sql.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, quotes)
+	}
+}
+
+// handleGetCategories returns a handler for getting all available categories
+func handleGetCategories(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		rows, err := db.Query("SELECT DISTINCT classification FROM quotes WHERE approved = true")
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve categories"})
+			return
+		}
+		defer rows.Close()
+
+		categories := []string{}
+		for rows.Next() {
+			var category string
+			if err := rows.Scan(&category); err != nil {
+				log.Println(err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to process categories"})
+				return
+			}
+			categories = append(categories, category)
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to process categories"})
+			return
+		}
+
+		c.IndentedJSON(http.StatusOK, gin.H{"categories": categories})
 	}
 }
