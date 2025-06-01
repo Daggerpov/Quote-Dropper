@@ -346,7 +346,6 @@
                 <input type="text" id="edit_text_${q.id}" value="${q.text}" />
                 <input type="text" id="edit_author_${q.id}" value="${q.author}" />
                 <select id="edit_classification_${q.id}">
-                    <option value="all" ${q.classification === "all" ? "selected" : ""}>All</option>
                     <option value="wisdom" ${q.classification === "wisdom" ? "selected" : ""}>Wisdom</option>
                     <option value="motivation" ${q.classification === "motivation" ? "selected" : ""}>Motivation</option>
                     <option value="discipline" ${q.classification === "discipline" ? "selected" : ""}>Discipline</option>
@@ -539,7 +538,6 @@
                         <input type="text" id="edit_text_{{.ID}}" value="{{.Text}}" />
                         <input type="text" id="edit_author_{{.ID}}" value="{{.Author}}" />
                         <select id="edit_classification_{{.ID}}">
-                            <option value="all" {{if eq .Classification "all"}}selected{{end}}>All</option>
                             <option value="wisdom" {{if eq .Classification "wisdom"}}selected{{end}}>Wisdom</option>
                             <option value="motivation" {{if eq .Classification "motivation"}}selected{{end}}>Motivation</option>
                             <option value="discipline" {{if eq .Classification "discipline"}}selected{{end}}>Discipline</option>

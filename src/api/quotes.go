@@ -1117,7 +1117,20 @@ func handleGetCategories(db *sql.DB) gin.HandlerFunc {
 		}
 		defer rows.Close()
 
+		// Define valid categories to filter out problematic ones
+		validCategories := map[string]bool{
+			"wisdom":      true,
+			"motivation":  true,
+			"discipline":  true,
+			"philosophy":  true,
+			"inspiration": true,
+			"upliftment":  true,
+			"love":        true,
+		}
+
 		categories := []string{}
+		categorySet := make(map[string]bool) // To prevent duplicates
+
 		for rows.Next() {
 			var category string
 			if err := rows.Scan(&category); err != nil {
@@ -1125,7 +1138,12 @@ func handleGetCategories(db *sql.DB) gin.HandlerFunc {
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to process categories"})
 				return
 			}
-			categories = append(categories, category)
+
+			// Filter out invalid categories (blank, null, all, etc.) and duplicates
+			if validCategories[category] && !categorySet[category] {
+				categories = append(categories, category)
+				categorySet[category] = true
+			}
 		}
 
 		if err := rows.Err(); err != nil {
