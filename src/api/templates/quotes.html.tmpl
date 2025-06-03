@@ -103,6 +103,36 @@
             transform: translateY(-2px);
         }
 
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .filter-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .filter-row {
+            margin-bottom: 15px;
+        }
+
+        .filter-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .filter-label {
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+
         .stats {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
@@ -256,12 +286,25 @@
             <input type="text" class="search-box" id="searchBox" placeholder="Search quotes by text, author, or category...">
         </div>
 
-        <div class="navigation">
-            <a href="/quotes" class="nav-link">All Quotes</a>
-            <a href="/quotes/maxQuoteLength=100" class="nav-link">Short Quotes (≤100)</a>
-            <a href="/quotes/maxQuoteLength=60" class="nav-link">Very Short (Instagram Notes length) (≤60)</a>
-            <a href="/quotes/recent/5" class="nav-link">Recent Quotes</a>
-            <a href="/" class="nav-link">Home</a>
+        <div class="filter-section">
+            <div class="filter-row">
+                <span class="filter-label">Quote Length</span>
+                <div class="navigation">
+                    <a href="/quotes" class="nav-link" data-filter="length" data-value="all">All Quotes</a>
+                    <a href="/quotes/maxQuoteLength=100" class="nav-link" data-filter="length" data-value="100">Short Quotes (≤100)</a>
+                    <a href="/quotes/maxQuoteLength=60" class="nav-link" data-filter="length" data-value="60">Very Short (≤60)</a>
+                </div>
+            </div>
+            <div class="filter-row">
+                <span class="filter-label">Category</span>
+                <div class="navigation" id="categoryNav">
+                    <a href="/quotes" class="nav-link category-filter" data-filter="category" data-value="all">All Categories</a>
+                    <!-- Categories will be loaded dynamically -->
+                </div>
+            </div>
+            <div class="filter-row">
+                <a href="/" class="nav-link">🏠 Home</a>
+            </div>
         </div>
 
         {{if .Stats}}
@@ -304,6 +347,104 @@
         const statsCount = document.getElementById('statsCount');
         const emptyState = document.getElementById('emptyState');
         const quoteGrid = document.getElementById('quoteGrid');
+
+        // Current filter state
+        let currentLengthFilter = 'all';
+        let currentCategoryFilter = 'all';
+
+        // Load categories from API
+        async function loadCategories() {
+            try {
+                const response = await fetch('/categories');
+                const data = await response.json();
+                const categoryNav = document.getElementById('categoryNav');
+                
+                if (data.categories && data.categories.length > 0) {
+                    // Sort categories alphabetically
+                    const sortedCategories = data.categories.sort();
+                    
+                    // Add category links
+                    sortedCategories.forEach(category => {
+                        const link = document.createElement('a');
+                        link.href = `/quotes/classification=${category}`;
+                        link.className = 'nav-link category-filter';
+                        link.setAttribute('data-filter', 'category');
+                        link.setAttribute('data-value', category);
+                        link.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+                        categoryNav.appendChild(link);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load categories:', error);
+            }
+        }
+
+        // Set active filters based on current page
+        function setActiveFilters() {
+            const path = window.location.pathname;
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Determine current filters from URL
+            if (path.includes('/maxQuoteLength=60')) {
+                currentLengthFilter = '60';
+            } else if (path.includes('/maxQuoteLength=100')) {
+                currentLengthFilter = '100';
+            } else {
+                currentLengthFilter = 'all';
+            }
+
+            if (path.includes('/classification=')) {
+                const categoryMatch = path.match(/\/classification=([^\/]+)/);
+                if (categoryMatch) {
+                    currentCategoryFilter = categoryMatch[1];
+                }
+            } else {
+                currentCategoryFilter = 'all';
+            }
+
+            // Update active states
+            document.querySelectorAll('.nav-link[data-filter="length"]').forEach(link => {
+                link.classList.toggle('active', link.getAttribute('data-value') === currentLengthFilter);
+            });
+
+            document.querySelectorAll('.nav-link[data-filter="category"]').forEach(link => {
+                link.classList.toggle('active', link.getAttribute('data-value') === currentCategoryFilter);
+            });
+        }
+
+        // Handle filter clicks
+        function handleFilterClick(event) {
+            const link = event.target;
+            const filter = link.getAttribute('data-filter');
+            const value = link.getAttribute('data-value');
+
+            if (!filter) return;
+
+            event.preventDefault();
+
+            // Update current filter state
+            if (filter === 'length') {
+                currentLengthFilter = value;
+            } else if (filter === 'category') {
+                currentCategoryFilter = value;
+            }
+
+            // Generate new URL
+            let newPath = '/quotes';
+            
+            // Add category filter if not 'all'
+            if (currentCategoryFilter !== 'all') {
+                newPath += `/classification=${currentCategoryFilter}`;
+            }
+            
+            // Add length filter if not 'all'
+            if (currentLengthFilter !== 'all') {
+                newPath += `/maxQuoteLength=${currentLengthFilter}`;
+            }
+
+            // Navigate to new URL
+            window.location.href = newPath;
+        }
 
         function performSearch() {
             const searchTerm = searchBox.value.toLowerCase().trim();
@@ -354,6 +495,22 @@
                 }
             }
         }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCategories().then(() => {
+                setActiveFilters();
+                
+                // Add click handlers to filter links
+                document.addEventListener('click', function(event) {
+                    if (event.target.classList.contains('nav-link') && 
+                        (event.target.getAttribute('data-filter') === 'length' || 
+                         event.target.getAttribute('data-filter') === 'category')) {
+                        handleFilterClick(event);
+                    }
+                });
+            });
+        });
 
         // Add event listener for real-time search
         searchBox.addEventListener('input', performSearch);
