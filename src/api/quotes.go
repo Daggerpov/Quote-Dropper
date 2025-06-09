@@ -92,6 +92,9 @@ func SetupQuoteRoutes(r *gin.Engine, db *sql.DB) {
 	// Get a specific quote by author and index
 	r.GET("/quotes/author=:author/index=:index", handleGetQuoteByAuthorAndIndex(db))
 
+	// Search quotes by keyword
+	r.GET("/quotes/search/:keyword", handleSearchQuotesPublic(db))
+
 	// Get quote count by category
 	r.GET("/quoteCount", handleGetQuoteCount(db))
 
@@ -756,6 +759,76 @@ func handleGetQuoteByAuthorAndIndex(db *sql.DB) gin.HandlerFunc {
 			renderQuotesHTML(c, []quote{quotes[index]}, title, description, stats)
 		} else {
 			c.IndentedJSON(http.StatusOK, quotes[index])
+		}
+	}
+}
+
+// handleSearchQuotesPublic creates a handler for searching approved quotes by keyword
+func handleSearchQuotesPublic(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		keyword := c.Param("keyword")
+		category := c.Query("category") // Optional category parameter
+
+		// SQL query with approved = true filter and optional category filter
+		query := "SELECT id, text, author, classification, likes FROM quotes WHERE approved = true AND (text ILIKE '%' || $1 || '%' OR author ILIKE '%' || $1 || '%')"
+
+		// If category is provided and not "all", add it to the WHERE clause
+		if category != "" && category != "all" {
+			query += " AND classification = $2"
+		}
+
+		// Add ordering and limit
+		query += " ORDER BY likes DESC, id DESC LIMIT 10"
+
+		var rows *sql.Rows
+		var err error
+
+		// Execute query with or without the category parameter
+		if category != "" && category != "all" {
+			rows, err = db.Query(query, keyword, category)
+		} else {
+			rows, err = db.Query(query, keyword)
+		}
+
+		if err != nil {
+			log.Println(err)
+			if isBrowserRequest(c) {
+				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
+					Title:       "Error",
+					Description: "Failed to search quotes",
+					Quotes:      []quote{},
+				})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search quotes from the database"})
+			}
+			return
+		}
+		defer rows.Close()
+
+		quotes, err := scanQuotes(rows)
+		if err != nil {
+			if isBrowserRequest(c) {
+				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
+					Title:       "Error",
+					Description: "Failed to process search results",
+					Quotes:      []quote{},
+				})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error processing search results"})
+			}
+			return
+		}
+
+		if isBrowserRequest(c) {
+			stats := &QuoteStats{Count: len(quotes)}
+			title := "Search Results"
+			description := "Quotes matching \"" + keyword + "\""
+			if category != "" && category != "all" {
+				description += " in " + category + " category"
+			}
+			renderQuotesHTML(c, quotes, title, description, stats)
+		} else {
+			c.IndentedJSON(http.StatusOK, quotes)
 		}
 	}
 }
