@@ -216,6 +216,54 @@
             font-size: 0.9rem;
         }
 
+        .quote-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 5px;
+            border-radius: 5px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .copy-btn:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: scale(1.05);
+        }
+
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+
+        .copy-feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .copy-feedback.show {
+            opacity: 1;
+        }
+
         .quote-id {
             position: absolute;
             top: 10px;
@@ -261,6 +309,18 @@
             .quote-meta {
                 flex-direction: column;
                 align-items: flex-start;
+            }
+
+            .quote-actions {
+                flex-wrap: wrap;
+                gap: 10px;
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .copy-btn {
+                font-size: 0.9rem;
+                padding: 8px 12px;
             }
 
             .nav-link {
@@ -323,9 +383,14 @@
                 <div class="quote-text">"{{.Text}}"</div>
                 <div class="quote-meta">
                     <div class="quote-author">— {{if .Author}}{{.Author}}{{else}}Unknown{{end}}</div>
-                    <div class="quote-classification">{{.Classification}}</div>
-                    <div class="quote-likes">
-                        <span class="heart">♥</span> {{.Likes}}
+                    <div class="quote-actions">
+                        <div class="quote-classification">{{.Classification}}</div>
+                        <button class="copy-btn" onclick="copyQuote(this)" data-text="{{.Text}}" data-author="{{.Author}}">
+                            📋 Copy
+                        </button>
+                        <div class="quote-likes">
+                            <span class="heart">♥</span> {{.Likes}}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -339,6 +404,9 @@
         {{end}}
     </div>
 
+    <!-- Copy feedback tooltip -->
+    <div id="copyFeedback" class="copy-feedback">Copied to clipboard!</div>
+
     <script>
         // Search functionality
         const searchBox = document.getElementById('searchBox');
@@ -351,6 +419,46 @@
         // Current filter state
         let currentLengthFilter = 'all';
         let currentCategoryFilter = 'all';
+
+        // Copy to clipboard functionality
+        function copyQuote(button) {
+            const text = button.getAttribute('data-text');
+            const author = button.getAttribute('data-author');
+            
+            // Format the quote text
+            let formattedQuote = `"${text}"`;
+            if (author && author !== 'Unknown' && author.trim() !== '') {
+                formattedQuote += ` — ${author}`;
+            }
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(formattedQuote).then(() => {
+                showCopyFeedback();
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = formattedQuote;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showCopyFeedback();
+                } catch (err) {
+                    console.error('Failed to copy quote:', err);
+                    alert('Failed to copy quote. Please try again.');
+                }
+                document.body.removeChild(textArea);
+            });
+        }
+
+        // Show copy feedback
+        function showCopyFeedback() {
+            const feedback = document.getElementById('copyFeedback');
+            feedback.classList.add('show');
+            setTimeout(() => {
+                feedback.classList.remove('show');
+            }, 2000);
+        }
 
         // Load categories from API
         async function loadCategories() {
