@@ -121,8 +121,8 @@ func handleSearchQuotes(db *sql.DB) gin.HandlerFunc {
 		keyword := c.Param("keyword")
 		category := c.Query("category") // Optional category parameter
 
-		// SQL query with optional category filter
-		query := "SELECT id, text, author, classification, likes FROM quotes WHERE text ILIKE '%' || $1 || '%'"
+		// SQL query with optional category filter - include submitter_name for admin search
+		query := "SELECT id, text, author, classification, likes, submitter_name FROM quotes WHERE text ILIKE '%' || $1 || '%'"
 
 		// If category is provided, add it to the WHERE clause
 		if category != "" && category != "all" {
@@ -148,7 +148,7 @@ func handleSearchQuotes(db *sql.DB) gin.HandlerFunc {
 		}
 		defer rows.Close()
 
-		quotes, err := scanQuotes(rows)
+		quotes, err := scanAdminQuotes(rows)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error processing search results."})
 			return
