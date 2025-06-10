@@ -9,206 +9,403 @@
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 20px;
+            margin: 0;
             padding: 0;
-            background-color: #f2f2f2;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
         }
 
         h1 {
             text-align: center;
-            color: #333;
+            color: #fff;
+            margin: 0;
+            padding: 30px 0;
+            font-size: 2.5em;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        h2 {
+            color: #2c3e50;
+            font-size: 1.5em;
+            margin: 30px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #3498db;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 0 20px 40px 20px;
         }
 
         /* Tab Navigation */
         .tab-nav {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 15px;
+            margin-bottom: 30px;
             justify-content: center;
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 10px;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
         }
         
         .tab-button {
             display: inline-block;
-            padding: 12px 20px;
-            background-color: #3498db;
+            padding: 15px 25px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
             color: white;
             text-decoration: none;
-            border-radius: 4px;
+            border-radius: 10px;
             cursor: pointer;
             text-align: center;
-            font-weight: bold;
+            font-weight: 600;
             border: none;
             font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
         }
         
         .tab-button:hover {
-            background-color: #2980b9;
+            background: linear-gradient(135deg, #2980b9 0%, #1f639a 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
         }
         
         .tab-button.active {
-            background-color: #2c3e50;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            box-shadow: 0 4px 15px rgba(44, 62, 80, 0.3);
         }
         
         .nav-link {
             display: inline-block;
-            padding: 10px 15px;
-            background-color: #27ae60;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #27ae60 0%, #219653 100%);
             color: white;
             text-decoration: none;
-            border-radius: 4px;
-            margin-left: 10px;
+            border-radius: 10px;
             font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
         }
         
         .nav-link:hover {
-            background-color: #219653;
+            background: linear-gradient(135deg, #219653 0%, #1e8449 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
         }
 
         /* Tab Content */
         .tab-content {
             display: none;
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
         }
         
         .tab-content.active {
             display: block;
         }
 
+        /* Search Container */
+        .search-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            align-items: center;
+        }
+
+        .search-container input {
+            flex: 1;
+        }
+
         /* Quotes Management Styles */
         ul {
             list-style-type: none;
             padding: 0;
+            margin: 0;
         }
 
         li {
-            background-color: #fff;
-            padding: 20px;
-            margin: 10px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
         }
 
+        li:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Form Elements Styling */
+        input[type="text"] {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            background: #ffffff;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            background: #fdfdfd;
+        }
+
+        /* Custom Select Dropdown Styling */
+        select {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 12px center;
+            background-repeat: no-repeat;
+            background-size: 16px;
+            padding-right: 45px;
+            box-sizing: border-box;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            background: linear-gradient(135deg, #fdfdfd 0%, #f8f9fa 100%);
+        }
+
+        select:hover {
+            border-color: #bdc3c7;
+            background: linear-gradient(135deg, #fdfdfd 0%, #f1f3f4 100%);
+        }
+
+        select option {
+            padding: 12px;
+            background: #ffffff;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+
+        select option:hover {
+            background: #e3f2fd;
+        }
+
+        /* Button Styling */
         button {
-            padding: 10px 16px;
+            padding: 12px 20px;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 14px;
+            margin-right: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
         button.approve {
-            background-color: #4CAF50;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+
+        button.approve:hover {
+            background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(76, 175, 80, 0.3);
         }
 
         button.dismiss {
-            background-color: #FF5733;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
         }
 
-        button:hover {
-            background-color: #45a049;
-        }
-
-        button.dismiss:hover,
-        button.dismiss-all:hover {
-            background-color: #FF5733;
+        button.dismiss:hover {
+            background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(231, 76, 60, 0.3);
         }
 
         button.dismiss-all {
-            background-color: #FF5733;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
         }
 
-        .update {
-            background-color: #3498db;
+        button.dismiss-all:hover {
+            background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(231, 76, 60, 0.3);
         }
 
-        span {
-            margin-left: 10px;
+        button.update {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
         }
 
-        #approval_ {
-            color: #4CAF50;
+        button.update:hover {
+            background: linear-gradient(135deg, #2980b9 0%, #1f639a 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(52, 152, 219, 0.3);
         }
 
-        #dismissal_ {
-            color: #FF5733;
+        /* Action Areas */
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+            flex-wrap: wrap;
         }
 
         .quote-info {
-            margin-top: 10px;
+            margin-top: 15px;
+            display: grid;
+            gap: 15px;
         }
 
-        input[type="text"] {
-            width: calc(100% - 32px);
-            padding: 8px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            margin-bottom: 10px;
-            color: #333;
+        /* Status Messages */
+        span {
+            margin-left: 15px;
+            font-weight: 600;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        #approval_ {
+            color: #27ae60;
+            background: rgba(39, 174, 96, 0.1);
+        }
+
+        #dismissal_ {
+            color: #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
         }
 
         /* Feedback Management Styles */
         .feedback-header {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             align-items: center;
         }
 
         .feedback-type {
-            background-color: #e0e0e0;
-            padding: 5px 10px;
-            border-radius: 4px;
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
             font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .type-general {
-            background-color: #e0e0e0;
-            color: #333;
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
         }
 
         .type-bug {
-            background-color: #f8d7da;
-            color: #721c24;
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
         }
 
         .type-feature {
-            background-color: #d1ecf1;
-            color: #0c5460;
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
         }
 
         .feedback-content {
-            margin: 15px 0;
+            margin: 20px 0;
             white-space: pre-wrap;
+            line-height: 1.6;
+            color: #2c3e50;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #3498db;
         }
 
         .feedback-meta {
-            color: #666;
+            color: #6c757d;
             font-size: 14px;
+            margin-bottom: 10px;
         }
 
         .feedback-image {
             max-width: 100%;
             max-height: 300px;
-            margin-top: 10px;
-            border-radius: 4px;
+            margin-top: 15px;
+            border-radius: 10px;
             border: 1px solid #ddd;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
         .empty-message {
             text-align: center;
-            padding: 30px;
-            background-color: #fff;
+            padding: 40px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            color: #6c757d;
+            font-size: 16px;
+        }
+
+        .submitter-info {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            padding: 10px 15px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-top: 15px;
+            border-left: 4px solid #2196f3;
+            font-size: 14px;
+            color: #1565c0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 15px 30px 15px;
+            }
+
+            .tab-nav {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .search-container {
+                flex-direction: column;
+            }
+
+            .actions {
+                justify-content: center;
+            }
+
+            h1 {
+                font-size: 2em;
+                padding: 20px 0;
+            }
         }
     </style>
     <script>
@@ -342,20 +539,22 @@
                         quoteDiv.className = 'quote'; // Add class name for styling
                         quoteDiv.dataset.id = q.id; // Set dataset ID
                         quoteDiv.innerHTML = `
-                <p>ID: ${q.id}</p> <!-- Display the ID -->
-                <input type="text" id="edit_text_${q.id}" value="${q.text}" />
-                <input type="text" id="edit_author_${q.id}" value="${q.author}" />
-                <select id="edit_classification_${q.id}">
-                    <option value="all" ${q.classification === "all" ? "selected" : ""}>All</option>
-                    <option value="wisdom" ${q.classification === "wisdom" ? "selected" : ""}>Wisdom</option>
-                    <option value="motivation" ${q.classification === "motivation" ? "selected" : ""}>Motivation</option>
-                    <option value="discipline" ${q.classification === "discipline" ? "selected" : ""}>Discipline</option>
-                    <option value="philosophy" ${q.classification === "philosophy" ? "selected" : ""}>Philosophy</option>
-                    <option value="inspiration" ${q.classification === "inspiration" ? "selected" : ""}>Inspiration</option>
-                    <option value="upliftment" ${q.classification === "upliftment" ? "selected" : ""}>Upliftment</option>
-                    <option value="love" ${q.classification === "love" ? "selected" : ""}>Love</option>
-                </select>
-                <p>Likes: ${q.likes}</p> <!-- Display the likes count -->
+                <div class="quote-info">
+                    <p style="font-weight: 600; color: #2c3e50; margin-bottom: 15px;">ID: ${q.id} | Likes: ${q.likes}</p>
+                    <input type="text" id="edit_text_${q.id}" value="${q.text}" placeholder="Quote text..." />
+                    <input type="text" id="edit_author_${q.id}" value="${q.author}" placeholder="Author name..." />
+                    <select id="edit_classification_${q.id}">
+                        <option value="all" ${q.classification === "all" ? "selected" : ""}>All</option>
+                        <option value="wisdom" ${q.classification === "wisdom" ? "selected" : ""}>Wisdom</option>
+                        <option value="motivation" ${q.classification === "motivation" ? "selected" : ""}>Motivation</option>
+                        <option value="discipline" ${q.classification === "discipline" ? "selected" : ""}>Discipline</option>
+                        <option value="philosophy" ${q.classification === "philosophy" ? "selected" : ""}>Philosophy</option>
+                        <option value="inspiration" ${q.classification === "inspiration" ? "selected" : ""}>Inspiration</option>
+                        <option value="upliftment" ${q.classification === "upliftment" ? "selected" : ""}>Upliftment</option>
+                        <option value="love" ${q.classification === "love" ? "selected" : ""}>Love</option>
+                    </select>
+                    ${q.submitter_name ? `<div class="submitter-info"><strong>Submitted by:</strong> ${q.submitter_name}</div>` : ''}
+                </div>
                 <div class="actions">
                     <button onclick="updateQuote('${q.id}')" class="update">Update</button>
                     <button onclick="deleteQuote('${q.id}')" class="dismiss">Delete</button>
@@ -536,8 +735,8 @@
                 {{range .quotes}}
                 <li class="quote" data-id="{{.ID}}">
                     <div class="quote-info">
-                        <input type="text" id="edit_text_{{.ID}}" value="{{.Text}}" />
-                        <input type="text" id="edit_author_{{.ID}}" value="{{.Author}}" />
+                        <input type="text" id="edit_text_{{.ID}}" value="{{.Text}}" placeholder="Quote text..." />
+                        <input type="text" id="edit_author_{{.ID}}" value="{{.Author}}" placeholder="Author name..." />
                         <select id="edit_classification_{{.ID}}">
                             <option value="all" {{if eq .Classification "all"}}selected{{end}}>All</option>
                             <option value="wisdom" {{if eq .Classification "wisdom"}}selected{{end}}>Wisdom</option>
@@ -548,6 +747,11 @@
                             <option value="upliftment" {{if eq .Classification "upliftment"}}selected{{end}}>Upliftment</option>
                             <option value="love" {{if eq .Classification "love"}}selected{{end}}>Love</option>
                         </select>
+                        {{if .SubmitterName}}
+                        <div class="submitter-info">
+                            <strong>Submitted by:</strong> {{.SubmitterName}}
+                        </div>
+                        {{end}}
                     </div>
 
                     <div class="actions">
