@@ -65,14 +65,14 @@ func BasicAuth(username, password string) gin.HandlerFunc {
 
 // getUnapprovedQuotes fetches all unapproved quotes from the database
 func getUnapprovedQuotes(db *sql.DB) ([]quote, error) {
-	rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE approved = false ORDER BY id")
+	rows, err := db.Query("SELECT id, text, author, classification, likes, submitter_name FROM quotes WHERE approved = false ORDER BY id")
 	if err != nil {
 		log.Println("Error fetching unapproved quotes:", err)
 		return nil, err
 	}
 	defer rows.Close()
 
-	return scanQuotes(rows)
+	return scanAdminQuotes(rows)
 }
 
 // handleApproveQuote creates a handler for approving quotes
@@ -165,7 +165,7 @@ func handleSearchByAuthor(db *sql.DB) gin.HandlerFunc {
 		// Replace hyphens with spaces and convert to lowercase
 		author = strings.ReplaceAll(strings.ToLower(author), "-", " ")
 
-		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE lower(author) LIKE '%' || $1 || '%'", author)
+		rows, err := db.Query("SELECT id, text, author, classification, likes, submitter_name FROM quotes WHERE lower(author) LIKE '%' || $1 || '%'", author)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to search quotes from the database."})
@@ -173,7 +173,7 @@ func handleSearchByAuthor(db *sql.DB) gin.HandlerFunc {
 		}
 		defer rows.Close()
 
-		quotes, err := scanQuotes(rows)
+		quotes, err := scanAdminQuotes(rows)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error processing search results."})
 			return
@@ -292,4 +292,40 @@ func handleDeleteFeedback(db *sql.DB) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, gin.H{"message": "Feedback deleted successfully."})
 	}
-} 
+}
+
+// scanAdminQuotes is a helper function to scan rows into quote structs including submitter_name for admin views
+func scanAdminQuotes(rows *sql.Rows) ([]quote, error) {
+	quotes := []quote{}
+
+	for rows.Next() {
+		var q quote
+		var author sql.NullString
+		var submitterName sql.NullString
+		if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes, &submitterName); err != nil {
+			log.Println(err)
+			return nil, err
+		}
+
+		if author.Valid {
+			q.Author = author.String
+		} else {
+			q.Author = ""
+		}
+
+		if submitterName.Valid {
+			q.SubmitterName = submitterName.String
+		} else {
+			q.SubmitterName = ""
+		}
+
+		quotes = append(quotes, q)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return quotes, nil
+}
