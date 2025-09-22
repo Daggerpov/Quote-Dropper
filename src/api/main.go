@@ -66,6 +66,18 @@ func main() {
 				log.Println("Warning: Could not add submitter_name column to quotes table:", err)
 			}
 		}
+
+		// Add timestamp columns to quotes table if they don't exist
+		if db != nil {
+			_, err = db.Exec(`
+				ALTER TABLE quotes 
+				ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+			`)
+			if err != nil {
+				log.Println("Warning: Could not add timestamp columns to quotes table:", err)
+			}
+		}
 	}
 
 	// Get port from environment or use default

@@ -65,14 +65,14 @@ func BasicAuth(username, password string) gin.HandlerFunc {
 
 // getUnapprovedQuotes fetches all unapproved quotes from the database
 func getUnapprovedQuotes(db *sql.DB) ([]quote, error) {
-	rows, err := db.Query("SELECT id, text, author, classification, likes, submitter_name FROM quotes WHERE approved = false ORDER BY id")
+	rows, err := db.Query("SELECT id, text, author, classification, likes, submitter_name, created_at, updated_at FROM quotes WHERE approved = false ORDER BY created_at DESC")
 	if err != nil {
 		log.Println("Error fetching unapproved quotes:", err)
 		return nil, err
 	}
 	defer rows.Close()
 
-	return scanQuotesWithSubmitter(rows)
+	return scanQuotesWithSubmitterAndTimestamps(rows)
 }
 
 // handleApproveQuote creates a handler for approving quotes
@@ -84,7 +84,7 @@ func handleApproveQuote(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		_, err = db.Exec("UPDATE quotes SET approved = true WHERE id = $1", id)
+		_, err = db.Exec("UPDATE quotes SET approved = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1", id)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to approve the quote."})
@@ -122,7 +122,7 @@ func handleSearchQuotes(db *sql.DB) gin.HandlerFunc {
 		category := c.Query("category") // Optional category parameter
 
 		// SQL query with optional category filter
-		query := "SELECT id, text, author, classification, likes, submitter_name FROM quotes WHERE text ILIKE '%' || $1 || '%'"
+		query := "SELECT id, text, author, classification, likes, submitter_name, created_at, updated_at FROM quotes WHERE text ILIKE '%' || $1 || '%'"
 
 		// If category is provided, add it to the WHERE clause
 		if category != "" && category != "all" {
@@ -148,7 +148,7 @@ func handleSearchQuotes(db *sql.DB) gin.HandlerFunc {
 		}
 		defer rows.Close()
 
-		quotes, err := scanQuotesWithSubmitter(rows)
+		quotes, err := scanQuotesWithSubmitterAndTimestamps(rows)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error processing search results."})
 			return
@@ -165,7 +165,7 @@ func handleSearchByAuthor(db *sql.DB) gin.HandlerFunc {
 		// Replace hyphens with spaces and convert to lowercase
 		author = strings.ReplaceAll(strings.ToLower(author), "-", " ")
 
-		rows, err := db.Query("SELECT id, text, author, classification, likes, submitter_name FROM quotes WHERE lower(author) LIKE '%' || $1 || '%'", author)
+		rows, err := db.Query("SELECT id, text, author, classification, likes, submitter_name, created_at, updated_at FROM quotes WHERE lower(author) LIKE '%' || $1 || '%'", author)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to search quotes from the database."})
@@ -173,7 +173,7 @@ func handleSearchByAuthor(db *sql.DB) gin.HandlerFunc {
 		}
 		defer rows.Close()
 
-		quotes, err := scanQuotesWithSubmitter(rows)
+		quotes, err := scanQuotesWithSubmitterAndTimestamps(rows)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Error processing search results."})
 			return
@@ -211,7 +211,7 @@ func handleEditQuote(db *sql.DB) gin.HandlerFunc {
 		}
 
 		// Update the quote
-		_, err = db.Exec("UPDATE quotes SET text = $1, author = $2, classification = $3 WHERE id = $4",
+		_, err = db.Exec("UPDATE quotes SET text = $1, author = $2, classification = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4",
 			editedQuote.EditText, editedQuote.EditAuthor, editedQuote.EditClassification, id)
 		if err != nil {
 			log.Println(err)
