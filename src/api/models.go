@@ -10,8 +10,9 @@ type quote struct {
 	Text           string `json:"text"`
 	Author         string `json:"author"`
 	Classification string `json:"classification"`
-	Approved       bool   `json:"approved"` // New field for approval status
-	Likes          int    `json:"likes"`    // New field for likes count
+	Approved       bool   `json:"approved"`       // New field for approval status
+	Likes          int    `json:"likes"`          // New field for likes count
+	SubmitterName  string `json:"submitter_name"` // Name/alias of the person who submitted the quote
 
 	// New editable fields
 	EditText           string `json:"edit_text"`

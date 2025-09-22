@@ -950,7 +950,7 @@ func handleAddQuote(db *sql.DB) gin.HandlerFunc {
 		} else {
 			q.Classification = strings.ToLower(q.Classification) // Convert classification to lowercase
 		}
-		err = db.QueryRow("INSERT INTO quotes (text, author, classification, approved, likes) VALUES ($1, $2, LOWER($3), $4, $5) RETURNING id", q.Text, q.Author, q.Classification, q.Approved, q.Likes).Scan(&id)
+		err = db.QueryRow("INSERT INTO quotes (text, author, classification, approved, likes, submitter_name) VALUES ($1, $2, LOWER($3), $4, $5, $6) RETURNING id", q.Text, q.Author, q.Classification, q.Approved, q.Likes, q.SubmitterName).Scan(&id)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to insert quote into the database."})
@@ -966,6 +966,7 @@ func handleAddQuote(db *sql.DB) gin.HandlerFunc {
 			Classification: q.Classification,
 			Approved:       q.Approved,
 			Likes:          q.Likes, // Include likes in the response
+			SubmitterName:  q.SubmitterName,
 		}
 
 		// Return the newly created quote in the response
@@ -1044,6 +1045,7 @@ func handleSubmitQuote(db *sql.DB) gin.HandlerFunc {
 		text := c.PostForm("text")
 		author := c.PostForm("author")
 		classification := c.PostForm("classification")
+		submitterName := c.PostForm("submitter_name")
 
 		// Validate quote text
 		if text == "" {
@@ -1084,8 +1086,8 @@ func handleSubmitQuote(db *sql.DB) gin.HandlerFunc {
 		// Insert quote into database (initially unapproved)
 		var id int
 		err = db.QueryRow(
-			"INSERT INTO quotes (text, author, classification, approved, likes) VALUES ($1, $2, $3, false, 0) RETURNING id",
-			text, author, classification,
+			"INSERT INTO quotes (text, author, classification, approved, likes, submitter_name) VALUES ($1, $2, $3, false, 0, $4) RETURNING id",
+			text, author, classification, submitterName,
 		).Scan(&id)
 
 		if err != nil {
@@ -1126,6 +1128,42 @@ func scanQuotes(rows *sql.Rows) ([]quote, error) {
 			q.Author = author.String
 		} else {
 			q.Author = ""
+		}
+
+		quotes = append(quotes, q)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return quotes, nil
+}
+
+// scanQuotesWithSubmitter is a helper function to scan rows into quote structs including submitter_name
+func scanQuotesWithSubmitter(rows *sql.Rows) ([]quote, error) {
+	quotes := []quote{}
+
+	for rows.Next() {
+		var q quote
+		var author sql.NullString
+		var submitterName sql.NullString
+		if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes, &submitterName); err != nil {
+			log.Println(err)
+			return nil, err
+		}
+
+		if author.Valid {
+			q.Author = author.String
+		} else {
+			q.Author = ""
+		}
+
+		if submitterName.Valid {
+			q.SubmitterName = submitterName.String
+		} else {
+			q.SubmitterName = ""
 		}
 
 		quotes = append(quotes, q)

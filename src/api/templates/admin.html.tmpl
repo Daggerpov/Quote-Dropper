@@ -355,6 +355,7 @@
                     <option value="love" ${q.classification === "love" ? "selected" : ""}>Love</option>
                 </select>
                 <p>Likes: ${q.likes}</p> <!-- Display the likes count -->
+                ${q.submitter_name ? `<div style="margin-top: 10px; padding: 5px; background-color: #f0f8ff; border-left: 3px solid #007bff; font-size: 14px; color: #555;"><strong>Submitted by:</strong> ${q.submitter_name}</div>` : ''}
                 <div class="actions">
                     <button onclick="updateQuote('${q.id}')" class="update">Update</button>
                     <button onclick="deleteQuote('${q.id}')" class="dismiss">Delete</button>
@@ -546,6 +547,11 @@
                             <option value="upliftment" {{if eq .Classification "upliftment"}}selected{{end}}>Upliftment</option>
                             <option value="love" {{if eq .Classification "love"}}selected{{end}}>Love</option>
                         </select>
+                        {{if .SubmitterName}}
+                        <div style="margin-top: 10px; padding: 5px; background-color: #f0f8ff; border-left: 3px solid #007bff; font-size: 14px; color: #555;">
+                            <strong>Submitted by:</strong> {{.SubmitterName}}
+                        </div>
+                        {{end}}
                     </div>
 
                     <div class="actions">

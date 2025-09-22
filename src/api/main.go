@@ -55,6 +55,17 @@ func main() {
 			log.Println("Running without database functionality")
 			db = nil
 		}
+
+		// Add submitter_name column to quotes table if it doesn't exist
+		if db != nil {
+			_, err = db.Exec(`
+				ALTER TABLE quotes 
+				ADD COLUMN IF NOT EXISTS submitter_name VARCHAR(100)
+			`)
+			if err != nil {
+				log.Println("Warning: Could not add submitter_name column to quotes table:", err)
+			}
+		}
 	}
 
 	// Get port from environment or use default
