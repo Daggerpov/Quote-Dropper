@@ -73,7 +73,7 @@ func printUsage() {
 	fmt.Println("  status     Show migration status")
 	fmt.Println("")
 	fmt.Println("Environment variables:")
-	fmt.Println("  DATABASE_URL    Database connection string (optional)")
+	fmt.Println("  DATABASE_URL    Database connection string (required)")
 }
 
 // Uncomment the main function below to use this as a standalone migration tool
