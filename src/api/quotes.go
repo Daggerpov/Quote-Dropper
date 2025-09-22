@@ -950,7 +950,7 @@ func handleAddQuote(db *sql.DB) gin.HandlerFunc {
 		} else {
 			q.Classification = strings.ToLower(q.Classification) // Convert classification to lowercase
 		}
-		err = db.QueryRow("INSERT INTO quotes (text, author, classification, approved, likes, submitter_name) VALUES ($1, $2, LOWER($3), $4, $5, $6) RETURNING id", q.Text, q.Author, q.Classification, q.Approved, q.Likes, q.SubmitterName).Scan(&id)
+		err = db.QueryRow("INSERT INTO quotes (text, author, classification, approved, likes, submitter_name, created_at, updated_at) VALUES ($1, $2, LOWER($3), $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id", q.Text, q.Author, q.Classification, q.Approved, q.Likes, q.SubmitterName).Scan(&id)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to insert quote into the database."})
@@ -1086,7 +1086,7 @@ func handleSubmitQuote(db *sql.DB) gin.HandlerFunc {
 		// Insert quote into database (initially unapproved)
 		var id int
 		err = db.QueryRow(
-			"INSERT INTO quotes (text, author, classification, approved, likes, submitter_name) VALUES ($1, $2, $3, false, 0, $4) RETURNING id",
+			"INSERT INTO quotes (text, author, classification, approved, likes, submitter_name, created_at, updated_at) VALUES ($1, $2, $3, false, 0, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id",
 			text, author, classification, submitterName,
 		).Scan(&id)
 
@@ -1150,6 +1150,42 @@ func scanQuotesWithSubmitter(rows *sql.Rows) ([]quote, error) {
 		var author sql.NullString
 		var submitterName sql.NullString
 		if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes, &submitterName); err != nil {
+			log.Println(err)
+			return nil, err
+		}
+
+		if author.Valid {
+			q.Author = author.String
+		} else {
+			q.Author = ""
+		}
+
+		if submitterName.Valid {
+			q.SubmitterName = submitterName.String
+		} else {
+			q.SubmitterName = ""
+		}
+
+		quotes = append(quotes, q)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return quotes, nil
+}
+
+// scanQuotesWithSubmitterAndTimestamps is a helper function to scan rows into quote structs including submitter_name and timestamps
+func scanQuotesWithSubmitterAndTimestamps(rows *sql.Rows) ([]quote, error) {
+	quotes := []quote{}
+
+	for rows.Next() {
+		var q quote
+		var author sql.NullString
+		var submitterName sql.NullString
+		if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes, &submitterName, &q.CreatedAt, &q.UpdatedAt); err != nil {
 			log.Println(err)
 			return nil, err
 		}
