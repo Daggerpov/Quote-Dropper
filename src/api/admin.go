@@ -48,6 +48,9 @@ func AdminRoutes(r *gin.Engine, db *sql.DB) {
 
 	// Delete feedback
 	r.DELETE("/admin/feedback/:id", BasicAuth(adminUsername, adminPassword), handleDeleteFeedback(db))
+
+	// View migration status
+	r.GET("/admin/migrations", BasicAuth(adminUsername, adminPassword), handleViewMigrations(db))
 }
 
 // BasicAuth middleware function
@@ -291,5 +294,19 @@ func handleDeleteFeedback(db *sql.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"message": "Feedback deleted successfully."})
+	}
+}
+
+// handleViewMigrations creates a handler for viewing migration status
+func handleViewMigrations(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		status, err := getMigrationStatus(db)
+		if err != nil {
+			log.Println("Error fetching migration status:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch migration status"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"migrations": status})
 	}
 }
