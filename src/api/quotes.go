@@ -1185,7 +1185,9 @@ func scanQuotesWithSubmitterAndTimestamps(rows *sql.Rows) ([]quote, error) {
 		var q quote
 		var author sql.NullString
 		var submitterName sql.NullString
-		if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes, &submitterName, &q.CreatedAt, &q.UpdatedAt); err != nil {
+		var createdAt sql.NullTime
+		var updatedAt sql.NullTime
+		if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes, &submitterName, &createdAt, &updatedAt); err != nil {
 			log.Println(err)
 			return nil, err
 		}
@@ -1200,6 +1202,18 @@ func scanQuotesWithSubmitterAndTimestamps(rows *sql.Rows) ([]quote, error) {
 			q.SubmitterName = submitterName.String
 		} else {
 			q.SubmitterName = ""
+		}
+
+		if createdAt.Valid {
+			q.CreatedAt = &createdAt.Time
+		} else {
+			q.CreatedAt = nil
+		}
+
+		if updatedAt.Valid {
+			q.UpdatedAt = &updatedAt.Time
+		} else {
+			q.UpdatedAt = nil
 		}
 
 		quotes = append(quotes, q)

@@ -27,55 +27,26 @@ func main() {
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
 		log.Println("WARNING: DATABASE_URL environment variable not set, running without database")
-		dbURL = "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
 	}
 
 	// Connect to the database
-	db, err := sql.Open("postgres", dbURL)
-	if err != nil {
-		log.Println("Error connecting to database:", err)
-		log.Println("Running without database functionality")
-		db = nil
-	} else {
-		defer db.Close()
-
-		// Create feedback table if it doesn't exist
-		_, err = db.Exec(`
-			CREATE TABLE IF NOT EXISTS feedback (
-				id SERIAL PRIMARY KEY,
-				type VARCHAR(50) NOT NULL,
-				name VARCHAR(100),
-				content TEXT NOT NULL,
-				image_path VARCHAR(255),
-				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-			)
-		`)
+	var db *sql.DB
+	if dbURL != "" {
+		var err error
+		db, err = sql.Open("postgres", dbURL)
 		if err != nil {
-			log.Println("Error creating feedback table:", err)
+			log.Println("Error connecting to database:", err)
 			log.Println("Running without database functionality")
 			db = nil
-		}
+		} else {
+			defer db.Close()
 
-		// Add submitter_name column to quotes table if it doesn't exist
-		if db != nil {
-			_, err = db.Exec(`
-				ALTER TABLE quotes 
-				ADD COLUMN IF NOT EXISTS submitter_name VARCHAR(100)
-			`)
+			// Run database migrations
+			err = runMigrations(db)
 			if err != nil {
-				log.Println("Warning: Could not add submitter_name column to quotes table:", err)
-			}
-		}
-
-		// Add timestamp columns to quotes table if they don't exist
-		if db != nil {
-			_, err = db.Exec(`
-				ALTER TABLE quotes 
-				ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-				ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-			`)
-			if err != nil {
-				log.Println("Warning: Could not add timestamp columns to quotes table:", err)
+				log.Println("Error running migrations:", err)
+				log.Println("Running without database functionality")
+				db = nil
 			}
 		}
 	}
@@ -90,7 +61,7 @@ func main() {
 	r := gin.Default()
 
 	// Create uploads directory if it doesn't exist
-	err = os.MkdirAll("./uploads", 0755)
+	err := os.MkdirAll("./uploads", 0755)
 	if err != nil {
 		log.Println("Error creating uploads directory:", err)
 		log.Fatal(err)

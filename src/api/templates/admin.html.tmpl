@@ -357,8 +357,8 @@
                 <p>Likes: ${q.likes}</p> <!-- Display the likes count -->
                 ${q.submitter_name ? `<div style="margin-top: 10px; padding: 5px; background-color: #f0f8ff; border-left: 3px solid #007bff; font-size: 14px; color: #555;"><strong>Submitted by:</strong> ${q.submitter_name}</div>` : ''}
                 <div style="margin-top: 10px; padding: 5px; background-color: #f8f9fa; border-left: 3px solid #28a745; font-size: 12px; color: #666;">
-                    <strong>Submitted:</strong> ${new Date(q.created_at).toLocaleString()} | 
-                    <strong>Last Updated:</strong> ${new Date(q.updated_at).toLocaleString()}
+                    <strong>Submitted:</strong> ${q.created_at ? new Date(q.created_at).toLocaleString() : 'Legacy quote (no timestamp)'} | 
+                    <strong>Last Updated:</strong> ${q.updated_at ? new Date(q.updated_at).toLocaleString() : 'N/A'}
                 </div>
                 <div class="actions">
                     <button onclick="updateQuote('${q.id}')" class="update">Update</button>
@@ -557,8 +557,8 @@
                         </div>
                         {{end}}
                         <div style="margin-top: 10px; padding: 5px; background-color: #f8f9fa; border-left: 3px solid #28a745; font-size: 12px; color: #666;">
-                            <strong>Submitted:</strong> {{.CreatedAt.Format "2006-01-02 15:04:05"}} | 
-                            <strong>Last Updated:</strong> {{.UpdatedAt.Format "2006-01-02 15:04:05"}}
+                            <strong>Submitted:</strong> {{if .CreatedAt}}{{.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}{{else}}Legacy quote (no timestamp){{end}} | 
+                            <strong>Last Updated:</strong> {{if .UpdatedAt}}{{.UpdatedAt.Format "Jan 2, 2006 at 3:04 PM"}}{{else}}N/A{{end}}
                         </div>
                     </div>
 
