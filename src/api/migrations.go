@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+// Database Migration System
+// This system is designed for production use and requires DATABASE_URL to be set.
+// Migrations are tracked in the 'migrations' table and run only once per deployment.
+
 // Migration represents a database migration
 type Migration struct {
 	ID          int

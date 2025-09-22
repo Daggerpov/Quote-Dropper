@@ -32,6 +32,7 @@ func main() {
 	// Connect to the database
 	var db *sql.DB
 	if dbURL != "" {
+		var err error
 		db, err = sql.Open("postgres", dbURL)
 		if err != nil {
 			log.Println("Error connecting to database:", err)
@@ -60,7 +61,7 @@ func main() {
 	r := gin.Default()
 
 	// Create uploads directory if it doesn't exist
-	err = os.MkdirAll("./uploads", 0755)
+	err := os.MkdirAll("./uploads", 0755)
 	if err != nil {
 		log.Println("Error creating uploads directory:", err)
 		log.Fatal(err)
