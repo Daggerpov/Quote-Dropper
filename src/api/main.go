@@ -67,18 +67,24 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Load templates from the templates directory
+	// Load templates from the templates directory with custom functions
 	templatePath := "./templates"
-	t, err := template.ParseGlob(filepath.Join(templatePath, "*.tmpl"))
+	
+	// Create a new template with custom functions
+	tmpl := template.New("").Funcs(template.FuncMap{
+		"isAuthorValid": isAuthorValid,
+	})
+	
+	t, err := tmpl.ParseGlob(filepath.Join(templatePath, "*.tmpl"))
 	if err != nil {
 		log.Printf("Failed with path %s: %v", templatePath, err)
 		// Try with alternate path
 		templatePath = "../templates"
-		t, err = template.ParseGlob(filepath.Join(templatePath, "*.tmpl"))
+		t, err = tmpl.ParseGlob(filepath.Join(templatePath, "*.tmpl"))
 		if err != nil {
 			// One more attempt with a different path
 			templatePath = "./src/api/templates"
-			t, err = template.ParseGlob(filepath.Join(templatePath, "*.tmpl"))
+			t, err = tmpl.ParseGlob(filepath.Join(templatePath, "*.tmpl"))
 			if err != nil {
 				log.Fatal("Error loading templates:", err)
 			}

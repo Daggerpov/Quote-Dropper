@@ -415,12 +415,12 @@
                 <div class="quote-id">#{{.ID}}</div>
                 <div class="quote-text">"{{.Text}}"</div>
                 <div class="quote-meta">
-                    {{if and .Author (ne .Author "Unknown Author") (ne .Author "NULL") (ne .Author "")}}
+                    {{if isAuthorValid .Author}}
                     <div class="quote-author">— {{.Author}}</div>
                     {{end}}
                     <div class="quote-actions">
                         <div class="quote-classification">{{.Classification}}</div>
-                        <button class="copy-btn" onclick="copyQuote(this)" data-text="{{.Text}}" data-author="{{if and .Author (ne .Author "Unknown Author") (ne .Author "NULL") (ne .Author "")}}{{.Author}}{{end}}">
+                        <button class="copy-btn" onclick="copyQuote(this)" data-text="{{.Text}}" data-author="{{if isAuthorValid .Author}}{{.Author}}{{end}}">
                             📋 Copy
                         </button>
                         <div class="quote-likes">
