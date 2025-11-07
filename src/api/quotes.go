@@ -14,6 +14,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// isAuthorValid checks if an author name is valid and should be displayed
+// This mirrors the iOS app's isAuthorValid function from AuthorHelper.swift
+func isAuthorValid(author string) bool {
+	return author != "Unknown Author" &&
+		author != "NULL" &&
+		author != "" &&
+		strings.TrimSpace(author) != ""
+}
+
 // isBrowserRequest checks if the request is coming from a web browser
 func isBrowserRequest(c *gin.Context) bool {
 	accept := c.GetHeader("Accept")

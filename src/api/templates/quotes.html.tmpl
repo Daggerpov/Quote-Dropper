@@ -415,10 +415,12 @@
                 <div class="quote-id">#{{.ID}}</div>
                 <div class="quote-text">"{{.Text}}"</div>
                 <div class="quote-meta">
-                    <div class="quote-author">— {{if .Author}}{{.Author}}{{else}}Unknown{{end}}</div>
+                    {{if and .Author (ne .Author "Unknown Author") (ne .Author "NULL") (ne .Author "")}}
+                    <div class="quote-author">— {{.Author}}</div>
+                    {{end}}
                     <div class="quote-actions">
                         <div class="quote-classification">{{.Classification}}</div>
-                        <button class="copy-btn" onclick="copyQuote(this)" data-text="{{.Text}}" data-author="{{.Author}}">
+                        <button class="copy-btn" onclick="copyQuote(this)" data-text="{{.Text}}" data-author="{{if and .Author (ne .Author "Unknown Author") (ne .Author "NULL") (ne .Author "")}}{{.Author}}{{end}}">
                             📋 Copy
                         </button>
                         <div class="quote-likes">
@@ -458,9 +460,9 @@
             const text = button.getAttribute('data-text');
             const author = button.getAttribute('data-author');
             
-            // Format the quote text
+            // Format the quote text - only include author if it's valid (same logic as iOS app)
             let formattedQuote = `"${text}"`;
-            if (author && author !== 'Unknown' && author.trim() !== '') {
+            if (author && author !== 'Unknown Author' && author !== 'NULL' && author !== '' && author.trim() !== '') {
                 formattedQuote += ` — ${author}`;
             }
 
