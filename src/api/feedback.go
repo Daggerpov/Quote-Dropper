@@ -15,12 +15,14 @@ import (
 
 // SetupFeedbackRoutes configures all feedback-related routes
 func SetupFeedbackRoutes(r *gin.Engine, db *sql.DB) {
-	// Render feedback submission page
+	// REST API endpoints
+	// POST /feedback - Submit feedback
+	r.POST("/feedback", handleSubmitFeedback(db))
+
+	// Web form routes (for browser UI)
 	r.GET("/submit-feedback", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "feedback.html.tmpl", gin.H{})
 	})
-
-	// Handle feedback submission
 	r.POST("/submit-feedback", handleSubmitFeedback(db))
 }
 

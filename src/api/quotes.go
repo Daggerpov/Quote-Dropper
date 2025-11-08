@@ -68,73 +68,156 @@ func renderQuotesHTML(c *gin.Context, quotes []quote, title, description string,
 
 // SetupQuoteRoutes configures all quote-related routes
 func SetupQuoteRoutes(r *gin.Engine, db *sql.DB) {
-	// Get all quotes
-	r.GET("/quotes", handleGetAllQuotes(db))
+	// REST API endpoints
+	// GET /quotes - Get all quotes with optional query parameters:
+	//   ?classification=X - filter by classification
+	//   ?author=X - filter by author
+	//   ?maxLength=X - filter by max text length
+	//   ?from=X - get quotes starting from ID
+	//   ?search=X - search quotes by keyword
+	//   ?category=X - filter search by category
+	//   ?index=X - get specific quote index by author (requires author param)
+	r.GET("/quotes", handleGetQuotes(db))
 
-	// Get quotes with max length constraint
-	r.GET("/quotes/maxQuoteLength=:maxQuoteLength", handleGetQuotesWithMaxLength(db))
+	// GET /quotes/random - Get a random quote
+	//   ?classification=X - filter by classification
+	//   ?maxLength=X - filter by max text length
+	r.GET("/quotes/random", handleGetRandomQuote(db))
 
-	// Get quotes starting from a specific ID
-	r.GET("/quotes/from/:id", handleGetQuotesFromID(db))
+	// GET /quotes/recent - Get recent quotes
+	//   ?limit=X - number of quotes to return (default: 5, max: 10)
+	r.GET("/quotes/recent", handleGetRecentQuotes(db))
 
-	// Get recent quotes
-	r.GET("/quotes/recent/:limit", handleGetRecentQuotes(db))
-
-	// Get top quotes (most liked)
+	// GET /quotes/top - Get top (most liked) quotes
+	//   ?category=X - filter by category
 	r.GET("/quotes/top", handleGetTopQuotes(db))
 
-	// Get a specific quote by ID
+	// GET /quotes/count - Get quote count
+	//   ?category=X - filter by category
+	r.GET("/quotes/count", handleGetQuoteCount(db))
+
+	// GET /quotes/:id - Get a specific quote by ID
 	r.GET("/quotes/:id", handleGetQuoteByID(db))
 
-	// Get random quote by classification
-	r.GET("/quotes/randomQuote/classification=:classification", handleGetRandomQuoteByClassification(db))
-
-	// Get quotes by classification
-	r.GET("/quotes/classification=:classification", handleGetQuotesByClassification(db))
-
-	// Get quotes by classification with max length
-	r.GET("/quotes/classification=:classification/maxQuoteLength=:maxQuoteLength", handleGetQuotesByClassificationWithMaxLength(db))
-
-	// Get quotes by author
-	r.GET("/quotes/author=:author", handleGetQuotesByAuthor(db))
-
-	// Get a specific quote by author and index
-	r.GET("/quotes/author=:author/index=:index", handleGetQuoteByAuthorAndIndex(db))
-
-	// Search quotes by keyword
-	r.GET("/quotes/search/:keyword", handleSearchQuotesPublic(db))
-
-	// Get quote count by category
-	r.GET("/quoteCount", handleGetQuoteCount(db))
-
-	// Get all available categories
-	r.GET("/categories", handleGetCategories(db))
-
-	// Get likes for a specific quote
-	r.GET("/quoteLikes/:id", handleGetQuoteLikes(db))
-
-	// Add a new quote
+	// POST /quotes - Create a new quote
 	r.POST("/quotes", handleAddQuote(db))
 
-	// Increment likes for a quote
-	r.POST("/quotes/like/:id", handleLikeQuote(db))
+	// POST /quotes/:id/like - Like a quote
+	r.POST("/quotes/:id/like", handleLikeQuote(db))
 
-	// Decrement likes for a quote
-	r.POST("/quotes/unlike/:id", handleUnlikeQuote(db))
+	// DELETE /quotes/:id/like - Unlike a quote
+	r.DELETE("/quotes/:id/like", handleUnlikeQuote(db))
 
-	// Render quote submission page
+	// GET /categories - Get all available categories
+	r.GET("/categories", handleGetCategories(db))
+
+	// Web form routes (for browser UI)
 	r.GET("/submit-quote", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "submit-quote.html.tmpl", gin.H{})
 	})
-
-	// Handle quote submission
 	r.POST("/submit-quote", handleSubmitQuote(db))
 }
 
-// handleGetAllQuotes returns a handler for getting all approved quotes
-func handleGetAllQuotes(db *sql.DB) gin.HandlerFunc {
+// handleGetQuotes returns a handler for getting quotes with various query parameters
+// Supports: ?classification=X, ?author=X, ?maxLength=X, ?from=X, ?search=X, ?index=X
+func handleGetQuotes(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE approved = true")
+		// Extract query parameters
+		classification := c.Query("classification")
+		author := c.Query("author")
+		maxLengthStr := c.Query("maxLength")
+		fromStr := c.Query("from")
+		search := c.Query("search")
+		indexStr := c.Query("index")
+		category := c.Query("category") // For search filtering
+
+		// Build query dynamically
+		query := "SELECT id, text, author, classification, likes FROM quotes WHERE approved = true"
+		args := []interface{}{}
+		argCount := 1
+
+		// Add classification filter
+		if classification != "" {
+			query += " AND classification = $" + strconv.Itoa(argCount)
+			args = append(args, classification)
+			argCount++
+		}
+
+		// Add author filter
+		if author != "" {
+			query += " AND author = $" + strconv.Itoa(argCount)
+			args = append(args, author)
+			argCount++
+		}
+
+		// Add max length filter
+		if maxLengthStr != "" {
+			maxLength, err := strconv.Atoi(maxLengthStr)
+			if err != nil || maxLength < 0 {
+				if isBrowserRequest(c) {
+					c.HTML(http.StatusBadRequest, "quotes.html.tmpl", QuotePageData{
+						Title:       "Invalid Request",
+						Description: "Invalid maxLength parameter",
+						Quotes:      []quote{},
+					})
+				} else {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid maxLength parameter"})
+				}
+				return
+			}
+			query += " AND LENGTH(text) <= $" + strconv.Itoa(argCount)
+			args = append(args, maxLength)
+			argCount++
+		}
+
+		// Add from ID filter
+		if fromStr != "" {
+			fromID, err := strconv.Atoi(fromStr)
+			if err != nil || fromID < 0 {
+				if isBrowserRequest(c) {
+					c.HTML(http.StatusBadRequest, "quotes.html.tmpl", QuotePageData{
+						Title:       "Invalid Request",
+						Description: "Invalid from parameter",
+						Quotes:      []quote{},
+					})
+				} else {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid from parameter"})
+				}
+				return
+			}
+			query += " AND id >= $" + strconv.Itoa(argCount)
+			args = append(args, fromID)
+			argCount++
+		}
+
+		// Add search filter
+		if search != "" {
+			query += " AND (text ILIKE '%' || $" + strconv.Itoa(argCount) + " || '%' OR author ILIKE '%' || $" + strconv.Itoa(argCount) + " || '%')"
+			args = append(args, search)
+			argCount++
+
+			// Optional category filter for search
+			if category != "" && category != "all" {
+				query += " AND classification = $" + strconv.Itoa(argCount)
+				args = append(args, category)
+				argCount++
+			}
+
+			// Add ordering and limit for search
+			query += " ORDER BY likes DESC, id DESC LIMIT 10"
+		} else {
+			// Default ordering
+			if fromStr != "" {
+				query += " ORDER BY id"
+			}
+			if author != "" {
+				query += " ORDER BY id"
+			}
+		}
+
+		log.Printf("Executing query: %s with args: %v", query, args)
+
+		rows, err := db.Query(query, args...)
 		if err != nil {
 			log.Println(err)
 			if isBrowserRequest(c) {
@@ -164,58 +247,129 @@ func handleGetAllQuotes(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
+		// Handle index parameter (get specific quote by author and index)
+		if indexStr != "" && author != "" {
+			index, err := strconv.Atoi(indexStr)
+			if err != nil || index < 0 {
+				if isBrowserRequest(c) {
+					c.HTML(http.StatusBadRequest, "quotes.html.tmpl", QuotePageData{
+						Title:       "Invalid Request",
+						Description: "Invalid index parameter",
+						Quotes:      []quote{},
+					})
+				} else {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid index parameter"})
+				}
+				return
+			}
+
+			if index >= len(quotes) {
+				if isBrowserRequest(c) {
+					c.HTML(http.StatusBadRequest, "quotes.html.tmpl", QuotePageData{
+						Title:       "Index Out of Range",
+						Description: "The specified index is out of range",
+						Quotes:      []quote{},
+					})
+				} else {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Index out of range"})
+				}
+				return
+			}
+
+			if isBrowserRequest(c) {
+				stats := &QuoteStats{Count: 1}
+				title := "Quote by " + author + " (Index " + indexStr + ")"
+				description := "Quote #" + strconv.Itoa(index) + " by " + author
+				renderQuotesHTML(c, []quote{quotes[index]}, title, description, stats)
+			} else {
+				c.IndentedJSON(http.StatusOK, quotes[index])
+			}
+			return
+		}
+
+		// Prepare response based on request type
 		if isBrowserRequest(c) {
 			stats := &QuoteStats{Count: len(quotes)}
-			renderQuotesHTML(c, quotes, "All Quotes", "Browse all approved quotes in the database", stats)
+			title := "Quotes"
+			description := "Browse quotes"
+
+			if classification != "" {
+				stats.Classification = classification
+				title = cases.Title(language.English).String(classification) + " Quotes"
+				description = "All quotes in the " + classification + " category"
+			}
+			if author != "" {
+				title = "Quotes by " + author
+				description = "All quotes attributed to " + author
+			}
+			if search != "" {
+				title = "Search Results"
+				description = "Quotes matching \"" + search + "\""
+			}
+			if maxLengthStr != "" {
+				maxLength, _ := strconv.Atoi(maxLengthStr)
+				stats.MaxLength = maxLength
+			}
+
+			renderQuotesHTML(c, quotes, title, description, stats)
 		} else {
 			c.IndentedJSON(http.StatusOK, quotes)
 		}
 	}
 }
 
-// handleGetQuotesWithMaxLength returns a handler for getting quotes with max length constraint
-func handleGetQuotesWithMaxLength(db *sql.DB) gin.HandlerFunc {
+// handleGetRandomQuote returns a handler for getting a random quote
+// Supports: ?classification=X, ?maxLength=X
+func handleGetRandomQuote(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		maxQuoteLengthStr := c.Param("maxQuoteLength")
+		classification := c.Query("classification")
+		maxLengthStr := c.Query("maxLength")
 
-		// Convert maxQuoteLength to an integer
-		maxQuoteLength, err := strconv.Atoi(maxQuoteLengthStr)
-		if err != nil {
-			if isBrowserRequest(c) {
-				c.HTML(http.StatusBadRequest, "quotes.html.tmpl", QuotePageData{
-					Title:       "Invalid Request",
-					Description: "Invalid maximum quote length specified",
-					Quotes:      []quote{},
-				})
-			} else {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid maxQuoteLength"})
-			}
-			return
-		}
-
+		// Build query dynamically
 		query := "SELECT id, text, author, classification, likes FROM quotes WHERE approved = true"
+		args := []interface{}{}
+		argCount := 1
 
-		// Append additional condition if maxQuoteLength is valid
-		if maxQuoteLength >= 0 {
-			query += " AND LENGTH(text) <= "
-			query += maxQuoteLengthStr
+		// Add classification filter
+		if classification != "" && classification != "all" {
+			query += " AND classification = $" + strconv.Itoa(argCount)
+			args = append(args, classification)
+			argCount++
 		}
 
-		// Log the final query for debugging
-		log.Printf("Executing query: %s with no args. (for all category)", query)
-		log.Printf("maxQuoteLength value: %d", maxQuoteLength)
+		// Add max length filter
+		if maxLengthStr != "" {
+			maxLength, err := strconv.Atoi(maxLengthStr)
+			if err != nil || maxLength < 0 {
+				if isBrowserRequest(c) {
+					c.HTML(http.StatusBadRequest, "quotes.html.tmpl", QuotePageData{
+						Title:       "Invalid Request",
+						Description: "Invalid maxLength parameter",
+						Quotes:      []quote{},
+					})
+				} else {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid maxLength parameter"})
+				}
+				return
+			}
+			query += " AND LENGTH(text) <= $" + strconv.Itoa(argCount)
+			args = append(args, maxLength)
+			argCount++
+		}
 
-		rows, err := db.Query(query)
+		log.Printf("Executing query: %s with args: %v", query, args)
+
+		rows, err := db.Query(query, args...)
 		if err != nil {
 			log.Println(err)
 			if isBrowserRequest(c) {
 				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
 					Title:       "Error",
-					Description: "Database query failed",
+					Description: "Failed to fetch quotes",
 					Quotes:      []quote{},
 				})
 			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database query failed"})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch quotes"})
 			}
 			return
 		}
@@ -235,92 +389,57 @@ func handleGetQuotesWithMaxLength(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		if isBrowserRequest(c) {
-			stats := &QuoteStats{Count: len(quotes), MaxLength: maxQuoteLength}
-			title := "Short Quotes"
-			description := "Quotes with maximum " + maxQuoteLengthStr + " characters"
-			renderQuotesHTML(c, quotes, title, description, stats)
-		} else {
-			c.IndentedJSON(http.StatusOK, quotes)
-		}
-	}
-}
-
-// handleGetQuotesFromID returns a handler for getting quotes starting from a specific ID
-func handleGetQuotesFromID(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		idStr := c.Param("id")
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
+		if len(quotes) == 0 {
 			if isBrowserRequest(c) {
-				c.HTML(http.StatusBadRequest, "quotes.html.tmpl", QuotePageData{
-					Title:       "Invalid Request",
-					Description: "Invalid quote ID specified",
+				c.HTML(http.StatusNotFound, "quotes.html.tmpl", QuotePageData{
+					Title:       "No Quote Found",
+					Description: "No random quote found with the specified criteria",
 					Quotes:      []quote{},
 				})
 			} else {
-				c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid quote ID."})
+				c.IndentedJSON(http.StatusNotFound, gin.H{"message": "No random quote found with the specified criteria."})
 			}
 			return
 		}
 
-		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE id >= $1 AND approved = true ORDER BY id", id)
-		if err != nil {
-			log.Println(err)
-			if isBrowserRequest(c) {
-				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
-					Title:       "Error",
-					Description: "Failed to fetch quotes from the specified ID onwards",
-					Quotes:      []quote{},
-				})
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch quotes from the specified ID onwards"})
-			}
-			return
-		}
-		defer rows.Close()
-
-		quotes, err := scanQuotes(rows)
-		if err != nil {
-			if isBrowserRequest(c) {
-				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
-					Title:       "Error",
-					Description: "Failed to process quotes",
-					Quotes:      []quote{},
-				})
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process quotes"})
-			}
-			return
-		}
+		// Select a random quote from the results
+		randomIndex := rand.Intn(len(quotes))
+		randomQuote := quotes[randomIndex]
 
 		if isBrowserRequest(c) {
-			stats := &QuoteStats{Count: len(quotes)}
-			title := "Quotes from ID " + idStr
-			description := "All quotes starting from ID " + idStr
-			renderQuotesHTML(c, quotes, title, description, stats)
+			stats := &QuoteStats{Count: 1}
+			if classification != "" {
+				stats.Classification = classification
+			}
+			title := "Random Quote"
+			if classification != "" && classification != "all" {
+				title = "Random " + cases.Title(language.English).String(classification) + " Quote"
+			}
+			description := "A randomly selected quote"
+			renderQuotesHTML(c, []quote{randomQuote}, title, description, stats)
 		} else {
-			c.JSON(http.StatusOK, quotes)
+			c.IndentedJSON(http.StatusOK, randomQuote)
 		}
 	}
 }
 
 // handleGetRecentQuotes returns a handler for getting recent quotes
+// Supports: ?limit=X (default: 5, max: 10)
 func handleGetRecentQuotes(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		limit := c.Param("limit")
+		limitStr := c.DefaultQuery("limit", "5")
 
 		// Validate the limit parameter
-		numLimit, err := strconv.Atoi(limit)
-		if err != nil || numLimit < 1 || numLimit > 5 {
+		numLimit, err := strconv.Atoi(limitStr)
+		if err != nil || numLimit < 1 || numLimit > 10 {
 			if isBrowserRequest(c) {
 				c.HTML(http.StatusBadRequest, "quotes.html.tmpl", QuotePageData{
 					Title:       "Invalid Request",
-					Description: "Invalid limit parameter. It should be a number between 1 and 5.",
+					Description: "Invalid limit parameter. It should be a number between 1 and 10.",
 					Quotes:      []quote{},
 				})
 			} else {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid limit parameter. It should be a number between 1 and 5."})
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid limit parameter. It should be a number between 1 and 10."})
 			}
 			return
 		}
@@ -358,7 +477,7 @@ func handleGetRecentQuotes(db *sql.DB) gin.HandlerFunc {
 		if isBrowserRequest(c) {
 			stats := &QuoteStats{Count: len(quotes)}
 			title := "Recent Quotes"
-			description := "The " + limit + " most recently added quotes"
+			description := "The " + limitStr + " most recently added quotes"
 			renderQuotesHTML(c, quotes, title, description, stats)
 		} else {
 			c.JSON(http.StatusOK, quotes)
@@ -422,427 +541,8 @@ func handleGetQuoteByID(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// handleGetRandomQuoteByClassification returns a handler for getting a random quote by classification
-func handleGetRandomQuoteByClassification(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		classification := c.Param("classification")
-
-		// Define the range of IDs to search
-		const maxAttempts = 10
-		const minID = 1
-		const maxID = 500 // Update this value as per your maximum ID
-
-		var q quote
-		var err error
-		var author sql.NullString
-
-		for attempts := 0; attempts < maxAttempts; attempts++ {
-			// Generate a random ID within the range
-			randID := rand.Intn(maxID-minID+1) + minID
-
-			// Try to fetch the quote with the generated ID
-			err = db.QueryRow(`
-				SELECT id, text, author, classification, likes 
-				FROM quotes 
-				WHERE id = $1 AND classification = $2 AND approved = TRUE`, randID, classification).Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes)
-
-			if err == nil {
-				if author.Valid {
-					q.Author = author.String
-				} else {
-					q.Author = ""
-				}
-				// If the quote is found, return it
-				if isBrowserRequest(c) {
-					stats := &QuoteStats{Count: 1, Classification: classification}
-					title := "Random " + cases.Title(language.English).String(classification) + " Quote"
-					description := "A randomly selected quote from the " + classification + " category"
-					renderQuotesHTML(c, []quote{q}, title, description, stats)
-				} else {
-					c.IndentedJSON(http.StatusOK, q)
-				}
-				return
-			}
-
-			// If the quote is not found or another error occurs, log it and try again
-			if err != sql.ErrNoRows {
-				log.Println(err)
-				if isBrowserRequest(c) {
-					c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
-						Title:       "Error",
-						Description: "Database error occurred",
-						Quotes:      []quote{},
-					})
-				} else {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
-				}
-				return
-			}
-		}
-
-		// If no valid quote is found after maximum attempts, return a 404 response
-		if isBrowserRequest(c) {
-			c.HTML(http.StatusNotFound, "quotes.html.tmpl", QuotePageData{
-				Title:       "No Quote Found",
-				Description: "No random quote found with the specified classification: " + classification,
-				Quotes:      []quote{},
-			})
-		} else {
-			c.IndentedJSON(http.StatusNotFound, gin.H{"message": "No random quote found with the specified classification."})
-		}
-	}
-}
-
-// handleGetQuotesByClassification returns a handler for getting quotes by classification
-func handleGetQuotesByClassification(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		classification := c.Param("classification")
-
-		// Extract maxQuoteLength from query parameters, default to -1 (no limit)
-		maxQuoteLengthParam := c.DefaultQuery("maxQuoteLength", "-1")
-		maxQuoteLength, err := strconv.Atoi(maxQuoteLengthParam)
-		if err != nil {
-			if isBrowserRequest(c) {
-				c.HTML(http.StatusBadRequest, "quotes.html.tmpl", QuotePageData{
-					Title:       "Invalid Request",
-					Description: "Invalid maxQuoteLength parameter",
-					Quotes:      []quote{},
-				})
-			} else {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid maxQuoteLength"})
-			}
-			return
-		}
-
-		// Prepare the SQL query
-		query := "SELECT id, text, author, classification, likes FROM quotes WHERE classification = $1 AND approved = true"
-		args := []interface{}{classification}
-
-		// Append additional condition if maxQuoteLength is valid
-		if maxQuoteLength >= 0 {
-			query += " AND LENGTH(text) <= $2"
-			args = append(args, maxQuoteLength)
-		}
-
-		// Log the final query for debugging
-		log.Printf("Executing query: %s with args: %v", query, args)
-		log.Printf("maxQuoteLength value: %d", maxQuoteLength)
-
-		rows, err := db.Query(query, args...)
-		if err != nil {
-			log.Println(err)
-			if isBrowserRequest(c) {
-				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
-					Title:       "Error",
-					Description: "Database query failed",
-					Quotes:      []quote{},
-				})
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database query failed"})
-			}
-			return
-		}
-		defer rows.Close()
-
-		quotes, err := scanQuotes(rows)
-		if err != nil {
-			if isBrowserRequest(c) {
-				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
-					Title:       "Error",
-					Description: "Failed to process quotes",
-					Quotes:      []quote{},
-				})
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process quotes"})
-			}
-			return
-		}
-
-		if isBrowserRequest(c) {
-			stats := &QuoteStats{Count: len(quotes), Classification: classification}
-			if maxQuoteLength >= 0 {
-				stats.MaxLength = maxQuoteLength
-			}
-			title := cases.Title(language.English).String(classification) + " Quotes"
-			description := "All quotes in the " + classification + " category"
-			if maxQuoteLength >= 0 {
-				description += " with maximum " + maxQuoteLengthParam + " characters"
-			}
-			renderQuotesHTML(c, quotes, title, description, stats)
-		} else {
-			c.IndentedJSON(http.StatusOK, quotes)
-		}
-	}
-}
-
-// handleGetQuotesByClassificationWithMaxLength returns a handler for getting quotes by classification with max length
-func handleGetQuotesByClassificationWithMaxLength(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		classification := c.Param("classification")
-		maxQuoteLengthStr := c.Param("maxQuoteLength")
-
-		// Convert maxQuoteLength to an integer
-		maxQuoteLength, err := strconv.Atoi(maxQuoteLengthStr)
-		if err != nil {
-			if isBrowserRequest(c) {
-				c.HTML(http.StatusBadRequest, "quotes.html.tmpl", QuotePageData{
-					Title:       "Invalid Request",
-					Description: "Invalid maxQuoteLength parameter",
-					Quotes:      []quote{},
-				})
-			} else {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid maxQuoteLength"})
-			}
-			return
-		}
-
-		query := "SELECT id, text, author, classification, likes FROM quotes WHERE classification = $1 AND approved = true"
-
-		// Append additional condition if maxQuoteLength is valid
-		if maxQuoteLength >= 0 {
-			query += " AND LENGTH(text) <= $2"
-		}
-
-		// Log the final query for debugging
-		log.Printf("Executing query: %s with args: [%s, %d]", query, classification, maxQuoteLength)
-
-		var rows *sql.Rows
-		if maxQuoteLength >= 0 {
-			rows, err = db.Query(query, classification, maxQuoteLength)
-		} else {
-			rows, err = db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE classification = $1 AND approved = true", classification)
-		}
-
-		if err != nil {
-			log.Println(err)
-			if isBrowserRequest(c) {
-				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
-					Title:       "Error",
-					Description: "Database query failed",
-					Quotes:      []quote{},
-				})
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database query failed"})
-			}
-			return
-		}
-		defer rows.Close()
-
-		quotes, err := scanQuotes(rows)
-		if err != nil {
-			if isBrowserRequest(c) {
-				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
-					Title:       "Error",
-					Description: "Failed to process quotes",
-					Quotes:      []quote{},
-				})
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process quotes"})
-			}
-			return
-		}
-
-		if isBrowserRequest(c) {
-			stats := &QuoteStats{Count: len(quotes), MaxLength: maxQuoteLength, Classification: classification}
-			title := "Short " + cases.Title(language.English).String(classification) + " Quotes"
-			description := cases.Title(language.English).String(classification) + " quotes with maximum " + maxQuoteLengthStr + " characters"
-			renderQuotesHTML(c, quotes, title, description, stats)
-		} else {
-			c.IndentedJSON(http.StatusOK, quotes)
-		}
-	}
-}
-
-// handleGetQuotesByAuthor returns a handler for getting quotes by author
-func handleGetQuotesByAuthor(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		author := c.Param("author")
-
-		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE author = $1 AND approved = true", author)
-		if err != nil {
-			log.Println(err)
-			if isBrowserRequest(c) {
-				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
-					Title:       "Error",
-					Description: "Failed to fetch quotes by author",
-					Quotes:      []quote{},
-				})
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch quotes by author"})
-			}
-			return
-		}
-		defer rows.Close()
-
-		quotes, err := scanQuotes(rows)
-		if err != nil {
-			if isBrowserRequest(c) {
-				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
-					Title:       "Error",
-					Description: "Failed to process quotes",
-					Quotes:      []quote{},
-				})
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process quotes"})
-			}
-			return
-		}
-
-		if isBrowserRequest(c) {
-			stats := &QuoteStats{Count: len(quotes)}
-			title := "Quotes by " + author
-			description := "All quotes attributed to " + author
-			renderQuotesHTML(c, quotes, title, description, stats)
-		} else {
-			c.JSON(http.StatusOK, quotes)
-		}
-	}
-}
-
-// handleGetQuoteByAuthorAndIndex returns a handler for getting a specific quote by author and index
-func handleGetQuoteByAuthorAndIndex(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		author := c.Param("author")
-		indexStr := c.Param("index")
-		index, err := strconv.Atoi(indexStr)
-		if err != nil {
-			if isBrowserRequest(c) {
-				c.HTML(http.StatusBadRequest, "quotes.html.tmpl", QuotePageData{
-					Title:       "Invalid Request",
-					Description: "Invalid index parameter",
-					Quotes:      []quote{},
-				})
-			} else {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid index parameter"})
-			}
-			return
-		}
-
-		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE author = $1 AND approved = true ORDER BY id", author)
-		if err != nil {
-			log.Println(err)
-			if isBrowserRequest(c) {
-				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
-					Title:       "Error",
-					Description: "Database query failed",
-					Quotes:      []quote{},
-				})
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database query failed"})
-			}
-			return
-		}
-		defer rows.Close()
-
-		quotes, err := scanQuotes(rows)
-		if err != nil {
-			if isBrowserRequest(c) {
-				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
-					Title:       "Error",
-					Description: "Failed to process quotes",
-					Quotes:      []quote{},
-				})
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process quotes"})
-			}
-			return
-		}
-
-		if index < 0 || index >= len(quotes) {
-			if isBrowserRequest(c) {
-				c.HTML(http.StatusBadRequest, "quotes.html.tmpl", QuotePageData{
-					Title:       "Index Out of Range",
-					Description: "The specified index is out of range for quotes by " + author,
-					Quotes:      []quote{},
-				})
-			} else {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Index out of range"})
-			}
-			return
-		}
-
-		if isBrowserRequest(c) {
-			stats := &QuoteStats{Count: 1}
-			title := "Quote by " + author + " (Index " + indexStr + ")"
-			description := "Quote #" + strconv.Itoa(index) + " by " + author
-			renderQuotesHTML(c, []quote{quotes[index]}, title, description, stats)
-		} else {
-			c.IndentedJSON(http.StatusOK, quotes[index])
-		}
-	}
-}
-
-// handleSearchQuotesPublic creates a handler for searching approved quotes by keyword
-func handleSearchQuotesPublic(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		keyword := c.Param("keyword")
-		category := c.Query("category") // Optional category parameter
-
-		// SQL query with approved = true filter and optional category filter
-		query := "SELECT id, text, author, classification, likes FROM quotes WHERE approved = true AND (text ILIKE '%' || $1 || '%' OR author ILIKE '%' || $1 || '%')"
-
-		// If category is provided and not "all", add it to the WHERE clause
-		if category != "" && category != "all" {
-			query += " AND classification = $2"
-		}
-
-		// Add ordering and limit
-		query += " ORDER BY likes DESC, id DESC LIMIT 10"
-
-		var rows *sql.Rows
-		var err error
-
-		// Execute query with or without the category parameter
-		if category != "" && category != "all" {
-			rows, err = db.Query(query, keyword, category)
-		} else {
-			rows, err = db.Query(query, keyword)
-		}
-
-		if err != nil {
-			log.Println(err)
-			if isBrowserRequest(c) {
-				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
-					Title:       "Error",
-					Description: "Failed to search quotes",
-					Quotes:      []quote{},
-				})
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search quotes from the database"})
-			}
-			return
-		}
-		defer rows.Close()
-
-		quotes, err := scanQuotes(rows)
-		if err != nil {
-			if isBrowserRequest(c) {
-				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
-					Title:       "Error",
-					Description: "Failed to process search results",
-					Quotes:      []quote{},
-				})
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error processing search results"})
-			}
-			return
-		}
-
-		if isBrowserRequest(c) {
-			stats := &QuoteStats{Count: len(quotes)}
-			title := "Search Results"
-			description := "Quotes matching \"" + keyword + "\""
-			if category != "" && category != "all" {
-				description += " in " + category + " category"
-			}
-			renderQuotesHTML(c, quotes, title, description, stats)
-		} else {
-			c.IndentedJSON(http.StatusOK, quotes)
-		}
-	}
-}
-
 // handleGetQuoteCount returns a handler for getting the number of quotes in a given category
+// Supports: ?category=X
 func handleGetQuoteCount(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		category := c.Query("category")
@@ -872,28 +572,94 @@ func handleGetQuoteCount(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// handleGetQuoteLikes returns a handler for getting the number of likes for a specific quote by ID
-func handleGetQuoteLikes(db *sql.DB) gin.HandlerFunc {
+// handleGetTopQuotes returns a handler for getting the top (most liked) quotes
+// Supports: ?category=X
+func handleGetTopQuotes(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		idStr := c.Param("id")
-		id, err := strconv.Atoi(idStr)
+		category := c.Query("category")
+
+		var query string
+		var rows *sql.Rows
+		var err error
+
+		// Default to returning at most 10 quotes
+		limit := 10
+
+		if category == "" || category == "all" {
+			// Get top quotes across all categories
+			query = "SELECT id, text, author, classification, likes FROM quotes WHERE approved = true ORDER BY likes DESC LIMIT $1"
+			rows, err = db.Query(query, limit)
+		} else {
+			// Get top quotes for a specific category
+			query = "SELECT id, text, author, classification, likes FROM quotes WHERE approved = true AND classification = $1 ORDER BY likes DESC LIMIT $2"
+			rows, err = db.Query(query, strings.ToLower(category), limit)
+		}
+
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid quote ID."})
+			log.Println("Error fetching top quotes:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch top quotes"})
+			return
+		}
+		defer rows.Close()
+
+		quotes, err := scanQuotes(rows)
+		if err != nil {
+			log.Println("Error scanning quotes:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process quotes"})
 			return
 		}
 
-		var likes int
-		err = db.QueryRow("SELECT likes FROM quotes WHERE id = $1 AND approved = true", id).Scan(&likes)
-		if err == sql.ErrNoRows {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Quote not found."})
-			return
-		} else if err != nil {
+		c.JSON(http.StatusOK, quotes)
+	}
+}
+
+// handleGetCategories returns a handler for getting all available categories
+func handleGetCategories(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		rows, err := db.Query("SELECT DISTINCT classification FROM quotes WHERE approved = true")
+		if err != nil {
 			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve likes count from the database."})
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve categories"})
+			return
+		}
+		defer rows.Close()
+
+		// Define valid categories to filter out problematic ones
+		validCategories := map[string]bool{
+			"wisdom":      true,
+			"motivation":  true,
+			"discipline":  true,
+			"philosophy":  true,
+			"inspiration": true,
+			"upliftment":  true,
+			"love":        true,
+		}
+
+		categories := []string{}
+		categorySet := make(map[string]bool) // To prevent duplicates
+
+		for rows.Next() {
+			var category string
+			if err := rows.Scan(&category); err != nil {
+				log.Println(err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to process categories"})
+				return
+			}
+
+			// Filter out invalid categories (blank, null, all, etc.) and duplicates
+			if validCategories[category] && !categorySet[category] {
+				categories = append(categories, category)
+				categorySet[category] = true
+			}
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to process categories"})
 			return
 		}
 
-		c.IndentedJSON(http.StatusOK, gin.H{"id": id, "likes": likes})
+		c.IndentedJSON(http.StatusOK, gin.H{"categories": categories})
 	}
 }
 
@@ -1234,94 +1000,4 @@ func scanQuotesWithSubmitterAndTimestamps(rows *sql.Rows) ([]quote, error) {
 	}
 
 	return quotes, nil
-}
-
-// handleGetTopQuotes returns a handler for getting the top (most liked) quotes
-func handleGetTopQuotes(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		category := c.Query("category")
-
-		var query string
-		var rows *sql.Rows
-		var err error
-
-		// Default to returning at most 10 quotes
-		limit := 10
-
-		if category == "" || category == "all" {
-			// Get top quotes across all categories
-			query = "SELECT id, text, author, classification, likes FROM quotes WHERE approved = true ORDER BY likes DESC LIMIT $1"
-			rows, err = db.Query(query, limit)
-		} else {
-			// Get top quotes for a specific category
-			query = "SELECT id, text, author, classification, likes FROM quotes WHERE approved = true AND classification = $1 ORDER BY likes DESC LIMIT $2"
-			rows, err = db.Query(query, strings.ToLower(category), limit)
-		}
-
-		if err != nil {
-			log.Println("Error fetching top quotes:", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch top quotes"})
-			return
-		}
-		defer rows.Close()
-
-		quotes, err := scanQuotes(rows)
-		if err != nil {
-			log.Println("Error scanning quotes:", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process quotes"})
-			return
-		}
-
-		c.JSON(http.StatusOK, quotes)
-	}
-}
-
-// handleGetCategories returns a handler for getting all available categories
-func handleGetCategories(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		rows, err := db.Query("SELECT DISTINCT classification FROM quotes WHERE approved = true")
-		if err != nil {
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve categories"})
-			return
-		}
-		defer rows.Close()
-
-		// Define valid categories to filter out problematic ones
-		validCategories := map[string]bool{
-			"wisdom":      true,
-			"motivation":  true,
-			"discipline":  true,
-			"philosophy":  true,
-			"inspiration": true,
-			"upliftment":  true,
-			"love":        true,
-		}
-
-		categories := []string{}
-		categorySet := make(map[string]bool) // To prevent duplicates
-
-		for rows.Next() {
-			var category string
-			if err := rows.Scan(&category); err != nil {
-				log.Println(err)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to process categories"})
-				return
-			}
-
-			// Filter out invalid categories (blank, null, all, etc.) and duplicates
-			if validCategories[category] && !categorySet[category] {
-				categories = append(categories, category)
-				categorySet[category] = true
-			}
-		}
-
-		if err := rows.Err(); err != nil {
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to process categories"})
-			return
-		}
-
-		c.IndentedJSON(http.StatusOK, gin.H{"categories": categories})
-	}
 }

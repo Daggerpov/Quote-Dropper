@@ -18,39 +18,34 @@ func AdminRoutes(r *gin.Engine, db *sql.DB) {
 	adminUsername := os.Getenv("ADMIN_USERNAME")
 	adminPassword := os.Getenv("ADMIN_PASSWORD")
 
-	// Admin page to manage unapproved quotes
-	r.GET("/admin", BasicAuth(adminUsername, adminPassword), func(c *gin.Context) {
-		unapprovedQuotes, err := getUnapprovedQuotes(db)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch unapproved quotes"})
-			return
-		}
-		c.HTML(http.StatusOK, "admin.html.tmpl", gin.H{"quotes": unapprovedQuotes})
-	})
+	// Admin group with basic auth
+	admin := r.Group("/admin", BasicAuth(adminUsername, adminPassword))
+	{
+		// Admin page to manage unapproved quotes
+		admin.GET("", func(c *gin.Context) {
+			unapprovedQuotes, err := getUnapprovedQuotes(db)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch unapproved quotes"})
+				return
+			}
+			c.HTML(http.StatusOK, "admin.html.tmpl", gin.H{"quotes": unapprovedQuotes})
+		})
 
-	// Approve a quote
-	r.POST("/admin/approve/:id", BasicAuth(adminUsername, adminPassword), handleApproveQuote(db))
+		// Quote management
+		admin.POST("/quotes/:id/approve", handleApproveQuote(db))
+		admin.DELETE("/quotes/:id", handleDismissQuote(db))
+		admin.PUT("/quotes/:id", handleEditQuote(db))
 
-	// Dismiss (delete) a quote
-	r.POST("/admin/dismiss/:id", BasicAuth(adminUsername, adminPassword), handleDismissQuote(db))
+		// Search endpoints
+		admin.GET("/quotes/search", handleSearchQuotes(db))
 
-	// Search quotes by keyword
-	r.GET("/admin/search/:keyword", handleSearchQuotes(db))
+		// Feedback management
+		admin.GET("/feedback", handleViewFeedback(db))
+		admin.DELETE("/feedback/:id", handleDeleteFeedback(db))
 
-	// Search quotes by author
-	r.GET("/admin/search/author/:author", BasicAuth(adminUsername, adminPassword), handleSearchByAuthor(db))
-
-	// Edit a quote
-	r.POST("/admin/edit/:id", BasicAuth(adminUsername, adminPassword), handleEditQuote(db))
-
-	// View feedback
-	r.GET("/admin/feedback", BasicAuth(adminUsername, adminPassword), handleViewFeedback(db))
-
-	// Delete feedback
-	r.DELETE("/admin/feedback/:id", BasicAuth(adminUsername, adminPassword), handleDeleteFeedback(db))
-
-	// View migration status
-	r.GET("/admin/migrations", BasicAuth(adminUsername, adminPassword), handleViewMigrations(db))
+		// Migration status
+		admin.GET("/migrations", handleViewMigrations(db))
+	}
 }
 
 // BasicAuth middleware function
@@ -119,9 +114,15 @@ func handleDismissQuote(db *sql.DB) gin.HandlerFunc {
 }
 
 // handleSearchQuotes creates a handler for searching quotes by keyword
+// Supports: ?q=keyword, ?category=X
 func handleSearchQuotes(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		keyword := c.Param("keyword")
+		keyword := c.Query("q")
+		if keyword == "" {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Search query parameter 'q' is required"})
+			return
+		}
+
 		category := c.Query("category") // Optional category parameter
 
 		// SQL query with optional category filter
