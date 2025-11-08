@@ -15,6 +15,10 @@ import (
 )
 
 func main() {
+	// Configure logger to write to stdout instead of stderr
+	// This ensures informational logs don't appear as errors
+	log.SetOutput(os.Stdout)
+
 	// Set Gin to release mode in production
 	if os.Getenv("GIN_MODE") != "debug" {
 		gin.SetMode(gin.ReleaseMode)
