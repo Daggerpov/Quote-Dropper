@@ -384,8 +384,8 @@
                 <span class="filter-label">Quote Length</span>
                 <div class="navigation">
                     <a href="/quotes" class="nav-link" data-filter="length" data-value="all">All Quotes</a>
-                    <a href="/quotes/maxQuoteLength=100" class="nav-link" data-filter="length" data-value="100">Short Quotes (≤100)</a>
-                    <a href="/quotes/maxQuoteLength=60" class="nav-link" data-filter="length" data-value="60">Very Short (≤60)</a>
+                    <a href="/quotes?maxLength=100" class="nav-link" data-filter="length" data-value="100">Short Quotes (≤100)</a>
+                    <a href="/quotes?maxLength=60" class="nav-link" data-filter="length" data-value="60">Very Short (≤60)</a>
                 </div>
             </div>
             <div class="filter-row">
@@ -509,7 +509,7 @@
                     // Add category links
                     sortedCategories.forEach(category => {
                         const link = document.createElement('a');
-                        link.href = `/quotes/classification=${category}`;
+                        link.href = `/quotes?classification=${category}`;
                         link.className = 'nav-link category-filter';
                         link.setAttribute('data-filter', 'category');
                         link.setAttribute('data-value', category);
@@ -524,23 +524,21 @@
 
         // Set active filters based on current page
         function setActiveFilters() {
-            const path = window.location.pathname;
             const urlParams = new URLSearchParams(window.location.search);
             
-            // Determine current filters from URL
-            if (path.includes('/maxQuoteLength=60')) {
+            // Determine current filters from query parameters
+            const maxLength = urlParams.get('maxLength');
+            if (maxLength === '60') {
                 currentLengthFilter = '60';
-            } else if (path.includes('/maxQuoteLength=100')) {
+            } else if (maxLength === '100') {
                 currentLengthFilter = '100';
             } else {
                 currentLengthFilter = 'all';
             }
 
-            if (path.includes('/classification=')) {
-                const categoryMatch = path.match(/\/classification=([^\/]+)/);
-                if (categoryMatch) {
-                    currentCategoryFilter = categoryMatch[1];
-                }
+            const classification = urlParams.get('classification');
+            if (classification) {
+                currentCategoryFilter = classification;
             } else {
                 currentCategoryFilter = 'all';
             }
@@ -572,21 +570,22 @@
                 currentCategoryFilter = value;
             }
 
-            // Generate new URL
-            let newPath = '/quotes';
+            // Generate new URL with query parameters
+            const params = new URLSearchParams();
             
             // Add category filter if not 'all'
             if (currentCategoryFilter !== 'all') {
-                newPath += `/classification=${currentCategoryFilter}`;
+                params.append('classification', currentCategoryFilter);
             }
             
             // Add length filter if not 'all'
             if (currentLengthFilter !== 'all') {
-                newPath += `/maxQuoteLength=${currentLengthFilter}`;
+                params.append('maxLength', currentLengthFilter);
             }
 
             // Navigate to new URL
-            window.location.href = newPath;
+            const queryString = params.toString();
+            window.location.href = queryString ? `/quotes?${queryString}` : '/quotes';
         }
 
         function performSearch() {
