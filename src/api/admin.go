@@ -82,11 +82,48 @@ func handleApproveQuote(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		_, err = db.Exec("UPDATE quotes SET approved = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1", id)
-		if err != nil {
-			log.Println(err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to approve the quote."})
-			return
+		// Check if there's edited quote data in the request body
+		var editedQuote quote
+		if err := c.ShouldBindJSON(&editedQuote); err == nil {
+			// If edited data was provided, update the quote first
+			if editedQuote.EditText != "" {
+				// Check if edited quote text already exists in another quote
+				var existingID int
+				err = db.QueryRow("SELECT id FROM quotes WHERE text = $1 AND id != $2", editedQuote.EditText, id).Scan(&existingID)
+				if err == nil {
+					c.AbortWithStatusJSON(http.StatusConflict, gin.H{"message": "Edited quote text already exists in the database."})
+					return
+				} else if err != sql.ErrNoRows {
+					log.Println(err)
+					c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to check if edited quote already exists in the database."})
+					return
+				}
+
+				// Update the quote with edited values and approve it
+				_, err = db.Exec("UPDATE quotes SET text = $1, author = $2, classification = $3, approved = true, updated_at = CURRENT_TIMESTAMP WHERE id = $4",
+					editedQuote.EditText, editedQuote.EditAuthor, editedQuote.EditClassification, id)
+				if err != nil {
+					log.Println(err)
+					c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to approve the quote."})
+					return
+				}
+			} else {
+				// No edit text provided, just approve
+				_, err = db.Exec("UPDATE quotes SET approved = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1", id)
+				if err != nil {
+					log.Println(err)
+					c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to approve the quote."})
+					return
+				}
+			}
+		} else {
+			// No JSON body provided, just approve
+			_, err = db.Exec("UPDATE quotes SET approved = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1", id)
+			if err != nil {
+				log.Println(err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to approve the quote."})
+				return
+			}
 		}
 
 		c.JSON(http.StatusOK, gin.H{"message": "Quote approved successfully."})
