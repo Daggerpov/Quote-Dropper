@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -145,8 +146,24 @@ func executeMigration(db *sql.DB, migration Migration) error {
 	return nil
 }
 
+// migrationLockKey is an arbitrary constant used as the Postgres advisory lock ID for migrations
+const migrationLockKey = 72064311
+
 // runMigrations executes all pending migrations
 func runMigrations(db *sql.DB) error {
+	// Hold an advisory lock so that replicas starting at the same time don't run the same migration concurrently
+	ctx := context.Background()
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting connection for migration lock: %v", err)
+	}
+	defer conn.Close()
+
+	if _, err := conn.ExecContext(ctx, "SELECT pg_advisory_lock($1)", migrationLockKey); err != nil {
+		return fmt.Errorf("error acquiring migration lock: %v", err)
+	}
+	defer conn.ExecContext(ctx, "SELECT pg_advisory_unlock($1)", migrationLockKey)
+
 	// Create migrations table if it doesn't exist
 	if err := createMigrationsTable(db); err != nil {
 		return fmt.Errorf("error creating migrations table: %v", err)
