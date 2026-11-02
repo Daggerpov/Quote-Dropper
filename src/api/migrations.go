@@ -95,6 +95,18 @@ func getMigrations() []Migration {
 				CREATE INDEX IF NOT EXISTS idx_quotes_submitter_id ON quotes (submitter_id)
 			`,
 		},
+		{
+			ID:          6,
+			Name:        "006_add_approved_at_to_quotes",
+			Description: "Add approved_at column, backfilled from updated_at for already-approved quotes",
+			SQL: `
+				ALTER TABLE quotes
+				ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;
+				UPDATE quotes
+				SET approved_at = updated_at
+				WHERE approved = true AND approved_at IS NULL AND updated_at IS NOT NULL
+			`,
+		},
 	}
 }
 

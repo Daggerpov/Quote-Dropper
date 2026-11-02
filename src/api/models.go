@@ -16,6 +16,7 @@ type quote struct {
 	SubmitterID    string     `json:"submitter_id,omitempty"` // Anonymous device ID used to look up a user's own submissions
 	CreatedAt      *time.Time `json:"created_at"`             // Timestamp when quote was submitted (nullable)
 	UpdatedAt      *time.Time `json:"updated_at"`             // Timestamp when quote was last updated (nullable)
+	ApprovedAt     *time.Time `json:"approved_at,omitempty"`  // Timestamp when quote was approved (nullable)
 
 	// New editable fields
 	EditText           string `json:"edit_text"`
