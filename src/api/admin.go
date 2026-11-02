@@ -100,7 +100,7 @@ func handleApproveQuote(db *sql.DB) gin.HandlerFunc {
 				}
 
 				// Update the quote with edited values and approve it
-				_, err = db.Exec("UPDATE quotes SET text = $1, author = $2, classification = $3, approved = true, updated_at = CURRENT_TIMESTAMP WHERE id = $4",
+				_, err = db.Exec("UPDATE quotes SET text = $1, author = $2, classification = $3, approved = true, approved_at = COALESCE(approved_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP WHERE id = $4",
 					editedQuote.EditText, editedQuote.EditAuthor, editedQuote.EditClassification, id)
 				if err != nil {
 					log.Println(err)
@@ -109,7 +109,7 @@ func handleApproveQuote(db *sql.DB) gin.HandlerFunc {
 				}
 			} else {
 				// No edit text provided, just approve
-				_, err = db.Exec("UPDATE quotes SET approved = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1", id)
+				_, err = db.Exec("UPDATE quotes SET approved = true, approved_at = COALESCE(approved_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP WHERE id = $1", id)
 				if err != nil {
 					log.Println(err)
 					c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to approve the quote."})
@@ -118,7 +118,7 @@ func handleApproveQuote(db *sql.DB) gin.HandlerFunc {
 			}
 		} else {
 			// No JSON body provided, just approve
-			_, err = db.Exec("UPDATE quotes SET approved = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1", id)
+			_, err = db.Exec("UPDATE quotes SET approved = true, approved_at = COALESCE(approved_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP WHERE id = $1", id)
 			if err != nil {
 				log.Println(err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to approve the quote."})

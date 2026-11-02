@@ -447,7 +447,7 @@ func handleGetRecentQuotes(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		rows, err := db.Query("SELECT id, text, author, classification, likes FROM quotes WHERE approved = true ORDER BY id DESC LIMIT $1", numLimit)
+		rows, err := db.Query("SELECT id, text, author, classification, likes, approved_at FROM quotes WHERE approved = true ORDER BY id DESC LIMIT $1", numLimit)
 		if err != nil {
 			log.Println(err)
 			if isBrowserRequest(c) {
@@ -463,7 +463,7 @@ func handleGetRecentQuotes(db *sql.DB) gin.HandlerFunc {
 		}
 		defer rows.Close()
 
-		quotes, err := scanQuotes(rows)
+		quotes, err := scanQuotesWithApprovedAt(rows)
 		if err != nil {
 			if isBrowserRequest(c) {
 				c.HTML(http.StatusInternalServerError, "quotes.html.tmpl", QuotePageData{
@@ -980,6 +980,35 @@ func scanQuotes(rows *sql.Rows) ([]quote, error) {
 			q.Author = author.String
 		} else {
 			q.Author = ""
+		}
+
+		quotes = append(quotes, q)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return quotes, nil
+}
+
+// scanQuotesWithApprovedAt is a helper function to scan rows into quote structs including approved_at
+func scanQuotesWithApprovedAt(rows *sql.Rows) ([]quote, error) {
+	quotes := []quote{}
+
+	for rows.Next() {
+		var q quote
+		var author sql.NullString
+		var approvedAt sql.NullTime
+		if err := rows.Scan(&q.ID, &q.Text, &author, &q.Classification, &q.Likes, &approvedAt); err != nil {
+			log.Println(err)
+			return nil, err
+		}
+
+		q.Author = author.String
+		if approvedAt.Valid {
+			q.ApprovedAt = &approvedAt.Time
 		}
 
 		quotes = append(quotes, q)
