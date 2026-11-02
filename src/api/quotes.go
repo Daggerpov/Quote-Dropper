@@ -96,6 +96,9 @@ func SetupQuoteRoutes(r *gin.Engine, db *sql.DB) {
 	//   ?category=X - filter by category
 	r.GET("/quotes/count", handleGetQuoteCount(db))
 
+	// GET /quotes/submissions - Get the caller's own submissions (requires X-Submitter-ID header)
+	r.GET("/quotes/submissions", handleGetSubmissions(db))
+
 	// GET /quotes/:id - Get a specific quote by ID
 	r.GET("/quotes/:id", handleGetQuoteByID(db))
 
@@ -725,7 +728,12 @@ func handleAddQuote(db *sql.DB) gin.HandlerFunc {
 		} else {
 			q.Classification = strings.ToLower(q.Classification) // Convert classification to lowercase
 		}
-		err = db.QueryRow("INSERT INTO quotes (text, author, classification, approved, likes, submitter_name, created_at, updated_at) VALUES ($1, $2, LOWER($3), $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id", q.Text, q.Author, q.Classification, q.Approved, q.Likes, q.SubmitterName).Scan(&id)
+		q.SubmitterID = strings.TrimSpace(q.SubmitterID)
+		if len(q.SubmitterID) > maxSubmitterIDLength {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid submitter ID."})
+			return
+		}
+		err = db.QueryRow("INSERT INTO quotes (text, author, classification, approved, likes, submitter_name, submitter_id, created_at, updated_at) VALUES ($1, $2, LOWER($3), $4, $5, $6, NULLIF($7, ''), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id", q.Text, q.Author, q.Classification, q.Approved, q.Likes, q.SubmitterName, q.SubmitterID).Scan(&id)
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to insert quote into the database."})
@@ -746,6 +754,75 @@ func handleAddQuote(db *sql.DB) gin.HandlerFunc {
 
 		// Return the newly created quote in the response
 		c.IndentedJSON(http.StatusCreated, response)
+	}
+}
+
+// maxSubmitterIDLength matches the submitter_id column size
+const maxSubmitterIDLength = 64
+
+// handleGetSubmissions returns a handler for getting all quotes submitted by the caller,
+// identified by the X-Submitter-ID header, along with each one's review status
+func handleGetSubmissions(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		submitterID := strings.TrimSpace(c.GetHeader("X-Submitter-ID"))
+		if submitterID == "" || len(submitterID) > maxSubmitterIDLength {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "X-Submitter-ID header is required."})
+			return
+		}
+
+		rows, err := db.Query(`
+			SELECT id, text, author, classification, likes, submitter_name, approved, rejected, created_at, updated_at
+			FROM quotes
+			WHERE submitter_id = $1
+			ORDER BY created_at DESC NULLS LAST, id DESC`, submitterID)
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve submissions from the database."})
+			return
+		}
+		defer rows.Close()
+
+		submissions := []submission{}
+		for rows.Next() {
+			var s submission
+			var author, classification, submitterName sql.NullString
+			var approved, rejected bool
+			var createdAt, updatedAt sql.NullTime
+			if err := rows.Scan(&s.ID, &s.Text, &author, &classification, &s.Likes, &submitterName, &approved, &rejected, &createdAt, &updatedAt); err != nil {
+				log.Println(err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to read submissions."})
+				return
+			}
+
+			s.Author = author.String
+			s.Classification = classification.String
+			s.SubmitterName = submitterName.String
+			if createdAt.Valid {
+				s.CreatedAt = &createdAt.Time
+			}
+			if updatedAt.Valid {
+				s.UpdatedAt = &updatedAt.Time
+			}
+
+			switch {
+			case approved:
+				s.Status = "approved"
+			case rejected:
+				s.Status = "rejected"
+			default:
+				s.Status = "pending"
+			}
+
+			submissions = append(submissions, s)
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to read submissions."})
+			return
+		}
+
+		c.IndentedJSON(http.StatusOK, submissions)
 	}
 }
 

@@ -83,6 +83,17 @@ func getMigrations() []Migration {
 				AND submitter_name IS NULL
 			`,
 		},
+		{
+			ID:          5,
+			Name:        "005_add_submission_tracking_to_quotes",
+			Description: "Add submitter_id and rejected columns so users can view their past submissions",
+			SQL: `
+				ALTER TABLE quotes
+				ADD COLUMN IF NOT EXISTS submitter_id VARCHAR(64),
+				ADD COLUMN IF NOT EXISTS rejected BOOLEAN NOT NULL DEFAULT FALSE;
+				CREATE INDEX IF NOT EXISTS idx_quotes_submitter_id ON quotes (submitter_id)
+			`,
+		},
 	}
 }
 
