@@ -63,7 +63,7 @@ func BasicAuth(username, password string) gin.HandlerFunc {
 
 // getUnapprovedQuotes fetches all unapproved quotes from the database
 func getUnapprovedQuotes(db *sql.DB) ([]quote, error) {
-	rows, err := db.Query("SELECT id, text, author, classification, likes, submitter_name, created_at, updated_at FROM quotes WHERE approved = false ORDER BY created_at DESC")
+	rows, err := db.Query("SELECT id, text, author, classification, likes, submitter_name, created_at, updated_at FROM quotes WHERE approved = false AND rejected = false ORDER BY created_at DESC")
 	if err != nil {
 		log.Println("Error fetching unapproved quotes:", err)
 		return nil, err
@@ -139,7 +139,13 @@ func handleDismissQuote(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		_, err = db.Exec("DELETE FROM quotes WHERE id = $1", id)
+		// Quotes with a submitter_id are kept and marked rejected so the submitter can see the outcome
+		result, err := db.Exec("UPDATE quotes SET rejected = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND approved = false AND submitter_id IS NOT NULL", id)
+		if err == nil {
+			if rowsAffected, raErr := result.RowsAffected(); raErr == nil && rowsAffected == 0 {
+				_, err = db.Exec("DELETE FROM quotes WHERE id = $1", id)
+			}
+		}
 		if err != nil {
 			log.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to dismiss the quote."})
