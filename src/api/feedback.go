@@ -86,6 +86,8 @@ func handleSubmitFeedback(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
+		go notifyNewFeedback(id, feedbackType, name, content, imagePath != "")
+
 		c.JSON(http.StatusOK, gin.H{"success": true, "id": id})
 	}
 }
