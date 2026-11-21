@@ -1,301 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daniel's Quote Dropper API</title>
-
-    <link rel="icon" type="image/jpeg" href="/templates/images/small-droplet-icon.jpeg">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-            color: white;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 3rem;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-
-        h1:hover {
-            transform: scale(1.05);
-        }
-
-        h2 {
-            font-size: 1.5rem;
-            margin-bottom: 40px;
-            opacity: 0.9;
-        }
-
-        .section-title {
-            font-size: 1.8rem;
-            margin: 40px 0 20px 0;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
-            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
-            padding-bottom: 10px;
-        }
-
-        .section-title:first-of-type {
-            margin-top: 20px;
-        }
-
-        .region-info {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 40px;
-            font-size: 1.2rem;
-        }
-
-        .api-links {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-
-        .actions-section {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-
-        .github-section {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-
-        .api-link {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 25px;
-            text-decoration: none;
-            color: white;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .api-link:hover {
-            background: rgba(255, 255, 255, 0.25);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .github-link {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 25px;
-            text-decoration: none;
-            color: white;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .github-link:hover {
-            background: rgba(255, 255, 255, 0.25);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .github-link::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-            transition: left 0.5s;
-        }
-
-        .github-link:hover::before {
-            left: 100%;
-        }
-
-        .api-link h3 {
-            font-size: 1.3rem;
-            margin-bottom: 10px;
-        }
-
-        .api-link p {
-            opacity: 0.8;
-            font-size: 0.95rem;
-        }
-
-        .github-link h3 {
-            font-size: 1.3rem;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .github-link p {
-            opacity: 0.8;
-            font-size: 0.95rem;
-        }
-
-        .emoji {
-            font-size: 2rem;
-            margin-bottom: 15px;
-            display: block;
-        }
-
-        .github-icon {
-            font-size: 1.5rem;
-        }
-
-        .footer {
-            margin-top: 60px;
-            opacity: 0.7;
-            font-size: 0.9rem;
-        }
-
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2.5rem;
-            }
-            
-            .api-links, .actions-section, .github-section {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    {{template "head"}}
+    <title>Quote Dropper</title>
+    <meta name="description" content="The quote collection and public API behind the Quote Droplet apps.">
 </head>
 <body>
-    <div class="container">
-        <h1 onclick="window.location.href='/'" style="text-decoration: none;">📝 Daniel's Quote Dropper API</h1>
-        <h2>Welcome to the Quote API</h2>
-        
-        {{ if .Region }}
-        <div class="region-info">
-            🌍 Running in the {{.Region}} region
+    {{template "header" "home"}}
+
+    <main>
+        <div class="wrap">
+            <section class="hero" aria-live="polite">
+                <p class="eyebrow">A quote for right now</p>
+                <p class="hero-quote" id="heroQuote">&nbsp;</p>
+                <p class="hero-author" id="heroAuthor">&nbsp;</p>
+                <div class="hero-actions">
+                    <button type="button" class="btn" id="nextQuote">Another quote</button>
+                    <a href="/quotes" class="btn secondary" id="browseAll">Browse all quotes</a>
+                </div>
+            </section>
+
+            <section class="block">
+                <h2 class="section-title">Browse by category</h2>
+                <p class="section-sub">Every quote is reviewed before it shows up here or in the apps.</p>
+                <div class="chips">
+                    <a class="chip" href="/quotes?classification=wisdom">Wisdom</a>
+                    <a class="chip" href="/quotes?classification=motivation">Motivation</a>
+                    <a class="chip" href="/quotes?classification=discipline">Discipline</a>
+                    <a class="chip" href="/quotes?classification=philosophy">Philosophy</a>
+                    <a class="chip" href="/quotes?classification=inspiration">Inspiration</a>
+                    <a class="chip" href="/quotes?classification=upliftment">Upliftment</a>
+                    <a class="chip" href="/quotes?classification=love">Love</a>
+                    <a class="chip" href="/quotes?maxLength=100">Short (100 characters or less)</a>
+                </div>
+            </section>
+
+            <section class="block">
+                <h2 class="section-title">Know a good quote?</h2>
+                <p class="section-sub">Send it in. Once it's approved, it reaches everyone using Quote Droplet.</p>
+                <div class="hero-actions">
+                    <a href="/submit-quote" class="btn">Submit a quote</a>
+                    <a href="/submit-feedback" class="btn secondary">Send feedback</a>
+                </div>
+            </section>
+
+            <section class="block" id="api">
+                <h2 class="section-title">API</h2>
+                <p class="section-sub">Free and public, JSON by default. Base URL <code>https://quotedropper.up.railway.app</code>. Limited to 60 requests a minute.</p>
+                <div class="endpoints">
+                    <div class="endpoint"><span class="method">GET</span><a class="path" href="/quotes">/quotes</a><span class="desc">Approved quotes. Filter with <code>classification</code>, <code>author</code>, <code>maxLength</code> or <code>search</code>.</span></div>
+                    <div class="endpoint"><span class="method">GET</span><a class="path" href="/quotes/random">/quotes/random</a><span class="desc">One random quote. Takes <code>classification</code> and <code>maxLength</code>.</span></div>
+                    <div class="endpoint"><span class="method">GET</span><a class="path" href="/quotes/recent">/quotes/recent</a><span class="desc">Newest approved quotes. <code>limit</code> up to 10.</span></div>
+                    <div class="endpoint"><span class="method">GET</span><a class="path" href="/quotes/top">/quotes/top</a><span class="desc">Most liked quotes. Optional <code>category</code>.</span></div>
+                    <div class="endpoint"><span class="method">GET</span><span class="path">/quotes/:id</span><span class="desc">A single quote by ID.</span></div>
+                    <div class="endpoint"><span class="method">GET</span><a class="path" href="/quotes/count">/quotes/count</a><span class="desc">How many quotes there are. Optional <code>category</code>.</span></div>
+                    <div class="endpoint"><span class="method">GET</span><a class="path" href="/categories">/categories</a><span class="desc">Every category in use.</span></div>
+                    <div class="endpoint"><span class="method">POST</span><span class="path">/quotes</span><span class="desc">Submit a quote for review: <code>text</code>, <code>author</code>, <code>classification</code>.</span></div>
+                    <div class="endpoint"><span class="method">POST</span><span class="path">/quotes/:id/like</span><span class="desc">Like a quote. <code>DELETE</code> the same path to unlike.</span></div>
+                </div>
+            </section>
+
+            <section class="block">
+                <h2 class="section-title">The apps</h2>
+                <p class="section-sub">Quote Droplet puts these quotes on your home screen, lock screen and menu bar.</p>
+                <div class="apps">
+                    <a class="app" href="https://apps.apple.com/app/id6455084603">
+                        <p class="app-name">Quote Droplet for iPhone and iPad</p>
+                        <p class="app-desc">Widgets, daily notifications, search and saved quotes.</p>
+                    </a>
+                    <a class="app" href="https://apps.apple.com/app/id6455084603">
+                        <p class="app-name">Quote Droplet for Mac</p>
+                        <p class="app-desc">A quote in your menu bar, refreshed on your schedule.</p>
+                    </a>
+                    <a class="app" href="https://github.com/Daggerpov/Quote-Droplet-iOS">
+                        <p class="app-name">Source code</p>
+                        <p class="app-desc">The iOS, Mac and API code is all open on GitHub.</p>
+                    </a>
+                </div>
+            </section>
         </div>
-        {{end}}
+    </main>
 
-        <h3 class="section-title">📚 Browse</h3>
-        <div class="api-links">
-            <a href="/quotes" class="api-link">
-                <span class="emoji">📚</span>
-                <h3>All Quotes</h3>
-                <p>Browse all approved quotes in the database</p>
-            </a>
+    {{template "footer"}}
 
-            <a href="/quotes?maxLength=100" class="api-link">
-                <span class="emoji">✂️</span>
-                <h3>Short Quotes</h3>
-                <p>Quotes with 100 characters or less</p>
-            </a>
+    <script>
+        (function () {
+            const quoteEl = document.getElementById('heroQuote');
+            const authorEl = document.getElementById('heroAuthor');
+            const browseAll = document.getElementById('browseAll');
+            const invalidAuthors = ['', 'unknown author', 'null', 'unknown'];
 
-            <a href="/quotes?classification=motivation" class="api-link">
-                <span class="emoji">💪</span>
-                <h3>Motivation</h3>
-                <p>Inspiring and motivational quotes</p>
-            </a>
+            function showQuote(q) {
+                quoteEl.textContent = '“' + q.text.trim() + '”';
+                const author = (q.author || '').trim();
+                authorEl.textContent = invalidAuthors.includes(author.toLowerCase()) ? ' ' : author;
+            }
 
-            <a href="/quotes?classification=wisdom" class="api-link">
-                <span class="emoji">🧠</span>
-                <h3>Wisdom</h3>
-                <p>Wise and thoughtful quotes</p>
-            </a>
+            function loadQuote() {
+                fetch('/quotes/random?maxLength=180', { headers: { Accept: 'application/json' } })
+                    .then(r => r.ok ? r.json() : Promise.reject())
+                    .then(showQuote)
+                    .catch(() => {
+                        quoteEl.textContent = '“The best way out is always through.”';
+                        authorEl.textContent = 'Robert Frost';
+                    });
+            }
 
-            <a href="/quotes?classification=philosophy" class="api-link">
-                <span class="emoji">🤔</span>
-                <h3>Philosophy</h3>
-                <p>Deep philosophical insights</p>
-            </a>
+            fetch('/quotes/count', { headers: { Accept: 'application/json' } })
+                .then(r => r.json())
+                .then(d => { if (d.count) browseAll.textContent = 'Browse all ' + d.count.toLocaleString() + ' quotes'; })
+                .catch(() => {});
 
-            <a href="/quotes?classification=inspiration" class="api-link">
-                <span class="emoji">✨</span>
-                <h3>Inspiration</h3>
-                <p>Uplifting and inspiring quotes</p>
-            </a>
-
-            <a href="/quotes?classification=discipline" class="api-link">
-                <span class="emoji">🎯</span>
-                <h3>Discipline</h3>
-                <p>Quotes about self-control and discipline</p>
-            </a>
-
-            <a href="/quotes?classification=love" class="api-link">
-                <span class="emoji">❤️</span>
-                <h3>Love</h3>
-                <p>Quotes about love and relationships</p>
-            </a>
-
-            <a href="/quotes?classification=upliftment" class="api-link">
-                <span class="emoji">🌟</span>
-                <h3>Upliftment</h3>
-                <p>Uplifting and encouraging quotes</p>
-            </a>
-        </div>
-
-        <h3 class="section-title">⚡ Actions</h3>
-        <div class="actions-section">
-            <a href="/submit-quote" class="api-link">
-                <span class="emoji">➕</span>
-                <h3>Submit Quote</h3>
-                <p>Add a new quote to the collection</p>
-            </a>
-
-            <a href="/admin" class="api-link">
-                <span class="emoji">⚙️</span>
-                <h3>Admin Panel</h3>
-                <p>Manage quotes and feedback (restricted)</p>
-            </a>
-        </div>
-
-        <h3 class="section-title">🔗 GitHub Repositories</h3>
-        <div class="github-section">
-            <a href="https://github.com/Daggerpov/Quote-Droplet-iOS" target="_blank" class="github-link">
-                <span class="emoji">📱</span>
-                <h3><span class="github-icon">⭐</span> Quote Droplet iOS</h3>
-                <p>iOS app with feed, search, widgets, and notifications</p>
-            </a>
-
-            <a href="https://github.com/Daggerpov/Quote-Dropper" target="_blank" class="github-link">
-                <span class="emoji">🚀</span>
-                <h3><span class="github-icon">⭐</span> Quote Dropper API</h3>
-                <p>RESTful JSON API built with Go and PostgreSQL</p>
-            </a>
-
-            <a href="https://github.com/Daggerpov/Quote-Droplet-Mac" target="_blank" class="github-link">
-                <span class="emoji">💻</span>
-                <h3><span class="github-icon">⭐</span> Quote Droplet Mac</h3>
-                <p>macOS Menu Bar app (Available on App Store)</p>
-            </a>
-        </div>
-
-        <div class="footer">
-            <p>This API serves the Quote Droplet iOS & MacOS app and provides web access to the quote database.</p>
-        </div>
-    </div>
+            document.getElementById('nextQuote').addEventListener('click', loadQuote);
+            loadQuote();
+        })();
+    </script>
 </body>
 </html>
