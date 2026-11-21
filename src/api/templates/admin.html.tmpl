@@ -2,214 +2,53 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Quote Dropper</title>
-    <link rel="icon" type="image/jpeg" href="/templates/images/small-droplet-icon.jpeg">
+    {{template "head"}}
+    <title>Admin · Quote Dropper</title>
+    <meta name="robots" content="noindex">
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 20px;
-            padding: 0;
-            background-color: #f2f2f2;
+        .admin-tabs { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 24px; }
+        .tab-button { font: inherit; }
+        .tab-button.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .search-container { display: flex; gap: 8px; margin-bottom: 20px; }
+        .search-container input { flex: 1; }
+        .admin-subhead { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 0 16px; }
+        .admin-subhead h2 { font-family: var(--serif); font-size: 1.35rem; margin: 0; }
+        ul { list-style: none; padding: 0; margin: 0; }
+        li, .quote {
+            background: var(--surface);
+            border: 1px solid var(--hairline);
+            border-radius: var(--radius);
+            padding: 18px;
+            margin-bottom: 12px;
         }
-
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        /* Tab Navigation */
-        .tab-nav {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            justify-content: center;
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 10px;
-        }
-        
-        .tab-button {
-            display: inline-block;
-            padding: 12px 20px;
-            background-color: #3498db;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
+        .quote-info { display: grid; gap: 8px; }
+        .quote-info input, .quote input, .quote select { font-size: 15px; }
+        .quote p { margin: 4px 0; color: var(--muted); font-size: 0.88rem; }
+        .meta-note { color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
+        .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+        .actions span { font-size: 0.85rem; color: var(--muted); }
+        button.approve, button.update, button.dismiss, button.dismiss-all, .feedback-header button {
+            font: 600 0.85rem/1 var(--sans);
+            padding: 8px 12px;
+            border-radius: 10px;
             cursor: pointer;
-            text-align: center;
-            font-weight: bold;
-            border: none;
-            font-size: 16px;
+            border: 1px solid var(--hairline);
+            background: transparent;
+            color: var(--text);
         }
-        
-        .tab-button:hover {
-            background-color: #2980b9;
-        }
-        
-        .tab-button.active {
-            background-color: #2c3e50;
-        }
-        
-        .nav-link {
-            display: inline-block;
-            padding: 10px 15px;
-            background-color: #27ae60;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            margin-left: 10px;
-            font-size: 14px;
-        }
-        
-        .nav-link:hover {
-            background-color: #219653;
-        }
-
-        /* Tab Content */
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-
-        /* Quotes Management Styles */
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        li {
-            background-color: #fff;
-            padding: 20px;
-            margin: 10px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        button {
-            padding: 10px 16px;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        button.approve {
-            background-color: #4CAF50;
-        }
-
-        button.dismiss {
-            background-color: #FF5733;
-        }
-
-        button:hover {
-            background-color: #45a049;
-        }
-
-        button.dismiss:hover,
-        button.dismiss-all:hover {
-            background-color: #FF5733;
-        }
-
-        button.dismiss-all {
-            background-color: #FF5733;
-        }
-
-        .update {
-            background-color: #3498db;
-        }
-
-        span {
-            margin-left: 10px;
-        }
-
-        #approval_ {
-            color: #4CAF50;
-        }
-
-        #dismissal_ {
-            color: #FF5733;
-        }
-
-        .quote-info {
-            margin-top: 10px;
-        }
-
-        input[type="text"] {
-            width: calc(100% - 32px);
-            padding: 8px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            margin-bottom: 10px;
-            color: #333;
-        }
-
-        /* Feedback Management Styles */
-        .feedback-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            align-items: center;
-        }
-
-        .feedback-type {
-            background-color: #e0e0e0;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        .type-general {
-            background-color: #e0e0e0;
-            color: #333;
-        }
-
-        .type-bug {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-
-        .type-feature {
-            background-color: #d1ecf1;
-            color: #0c5460;
-        }
-
-        .feedback-content {
-            margin: 15px 0;
-            white-space: pre-wrap;
-        }
-
-        .feedback-meta {
-            color: #666;
-            font-size: 14px;
-        }
-
-        .feedback-image {
-            max-width: 100%;
-            max-height: 300px;
-            margin-top: 10px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-        }
-
-        .empty-message {
-            text-align: center;
-            padding: 30px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
+        button.approve { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+        button.dismiss, button.dismiss-all, .feedback-header button { color: var(--err-text); }
+        button:hover { opacity: 0.88; }
+        .feedback-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .feedback-type { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+        .type-bug { color: var(--err-text); }
+        .type-feature { color: var(--accent); }
+        .feedback-meta { color: var(--muted); font-size: 0.85rem; margin-bottom: 8px; }
+        .feedback-content { white-space: pre-wrap; }
+        .feedback-image { max-width: 100%; max-height: 320px; border-radius: 12px; margin-top: 12px; border: 1px solid var(--hairline); }
+        .empty-message { color: var(--muted); text-align: center; padding: 40px 0; }
     </style>
     <script>
         // Tab navigation
@@ -355,8 +194,8 @@
                     <option value="love" ${q.classification === "love" ? "selected" : ""}>Love</option>
                 </select>
                 <p>Likes: ${q.likes}</p> <!-- Display the likes count -->
-                ${q.submitter_name ? `<div style="margin-top: 10px; padding: 5px; background-color: #f0f8ff; border-left: 3px solid #007bff; font-size: 14px; color: #555;"><strong>Submitted by:</strong> ${q.submitter_name}</div>` : ''}
-                <div style="margin-top: 10px; padding: 5px; background-color: #f8f9fa; border-left: 3px solid #28a745; font-size: 12px; color: #666;">
+                ${q.submitter_name ? `<div class="meta-note"><strong>Submitted by:</strong> ${q.submitter_name}</div>` : ''}
+                <div class="meta-note">
                     <strong>Submitted:</strong> ${q.created_at ? new Date(q.created_at).toLocaleString() : 'Legacy quote (no timestamp)'} | 
                     <strong>Last Updated:</strong> ${q.updated_at ? new Date(q.updated_at).toLocaleString() : 'N/A'}
                 </div>
@@ -525,32 +364,36 @@
 </head>
 
 <body>
-    <div class="container">
-        <h1>Admin Dashboard</h1>
+    {{template "header" "admin"}}
 
-        <!-- Tab Navigation -->
-        <div class="tab-nav">
-            <button class="tab-button active" onclick="showTab('quotes')">Quotes Management</button>
-            <button class="tab-button" onclick="showTab('feedback')">Feedback Management</button>
-            <a href="/submit-feedback" class="nav-link">Submit Feedback</a>
-            <a href="/submit-quote" class="nav-link">Submit Quote</a>
+    <main class="wrap">
+        <div class="page-head">
+            <p class="eyebrow">Admin</p>
+            <h1 class="page-title">Review queue</h1>
+        </div>
+
+        <div class="admin-tabs">
+            <button class="chip tab-button active" onclick="showTab('quotes')">Quotes</button>
+            <button class="chip tab-button" onclick="showTab('feedback')">Feedback</button>
         </div>
 
         <!-- Quotes Management Tab -->
         <div id="quotes-tab" class="tab-content active">
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="Search quotes..." />
-                <button onclick="searchQuotes()" class="update">Search</button>
+                <button onclick="searchQuotes()" class="btn secondary">Search</button>
             </div>
 
             <div id="searchResults">
                 <!-- Search results will appear here -->
             </div>
 
-            <h2>Pending Quotes</h2>
-            <div class="actions">
-                <button onclick="approveAllQuotes()" class="approve">Approve All</button>
-                <button onclick="dismissAllQuotes()" class="dismiss-all">Dismiss All</button>
+            <div class="admin-subhead">
+                <h2>Pending quotes</h2>
+                <div class="actions" style="margin-top:0">
+                    <button onclick="approveAllQuotes()" class="approve">Approve all</button>
+                    <button onclick="dismissAllQuotes()" class="dismiss-all">Dismiss all</button>
+                </div>
             </div>
 
             <ul>
@@ -569,11 +412,11 @@
                             <option value="love" {{if eq .Classification "love"}}selected{{end}}>Love</option>
                         </select>
                         {{if .SubmitterName}}
-                        <div style="margin-top: 10px; padding: 5px; background-color: #f0f8ff; border-left: 3px solid #007bff; font-size: 14px; color: #555;">
+                        <div class="meta-note">
                             <strong>Submitted by:</strong> {{.SubmitterName}}
                         </div>
                         {{end}}
-                        <div style="margin-top: 10px; padding: 5px; background-color: #f8f9fa; border-left: 3px solid #28a745; font-size: 12px; color: #666;">
+                        <div class="meta-note">
                             <strong>Submitted:</strong> {{if .CreatedAt}}<span class="timestamp" data-time="{{.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}"></span>{{else}}Legacy quote (no timestamp){{end}} | 
                             <strong>Last Updated:</strong> {{if .UpdatedAt}}<span class="timestamp" data-time="{{.UpdatedAt.Format "2006-01-02T15:04:05Z07:00"}}"></span>{{else}}N/A{{end}}
                         </div>
@@ -599,7 +442,7 @@
                 <div class="empty-message">Loading feedback submissions...</div>
             </div>
         </div>
-    </div>
+    </main>
 </body>
 
 </html>

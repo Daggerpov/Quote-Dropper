@@ -1,0 +1,32 @@
+{{define "head"}}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#F6F0E6" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#2F241E" media="(prefers-color-scheme: dark)">
+    <link rel="icon" type="image/png" href="/templates/images/small-droplet-icon.png">
+    <link rel="stylesheet" href="/assets/site.css?v=2">
+{{end}}
+
+{{define "header"}}
+<header class="site-header">
+    <div class="wrap">
+        <a href="/" class="brand"><img src="/templates/images/small-droplet-icon.png" alt="">Quote Dropper</a>
+        <nav class="site-nav" aria-label="Main">
+            <a href="/quotes" {{if eq . "quotes"}}aria-current="page"{{end}}>Quotes</a>
+            <a href="/submit-quote" {{if eq . "submit"}}aria-current="page"{{end}}>Submit</a>
+            <a href="/submit-feedback" {{if eq . "feedback"}}aria-current="page"{{end}}>Feedback</a>
+            <a href="/#api" {{if eq . "api"}}aria-current="page"{{end}}>API</a>
+        </nav>
+    </div>
+</header>
+{{end}}
+
+{{define "footer"}}
+<footer class="site-footer">
+    <div class="wrap">
+        <span>Quote Dropper serves the Quote Droplet apps.</span>
+        <span><a href="https://github.com/Daggerpov/Quote-Dropper">Source on GitHub</a></span>
+    </div>
+</footer>
+{{end}}

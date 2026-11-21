@@ -1,669 +1,172 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{.Title}} - Quote Dropper</title>
-    <link rel="icon" type="image/jpeg" href="/templates/images/small-droplet-icon.jpeg">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-            color: #333;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-            color: white;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-
-        .header h1:hover {
-            transform: scale(1.05);
-        }
-
-        .header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-        }
-
-        .search-container {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-
-        .search-box {
-            width: 100%;
-            max-width: 500px;
-            padding: 15px 20px;
-            font-size: 1.1rem;
-            border: none;
-            border-radius: 25px;
-            background: rgba(255, 255, 255, 0.9);
-            color: #333;
-            outline: none;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-        }
-
-        .search-box:focus {
-            background: white;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-            transform: translateY(-2px);
-        }
-
-        .search-box::placeholder {
-            color: #666;
-        }
-
-        .navigation {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .nav-link {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 25px;
-            text-decoration: none;
-            margin: 5px 10px;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .nav-link:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .nav-link.active {
-            background: rgba(255, 255, 255, 0.4);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-
-        .filter-section {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-
-        .filter-row {
-            margin-bottom: 15px;
-        }
-
-        .filter-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .filter-label {
-            color: white;
-            font-weight: 600;
-            font-size: 1.1rem;
-            margin-bottom: 10px;
-            display: block;
-        }
-
-        .stats {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 30px;
-            text-align: center;
-            color: white;
-        }
-
-        .quote-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
-        }
-
-        .quote-card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .quote-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-        }
-
-        .quote-card::before {
-            content: '"';
-            position: absolute;
-            top: -10px;
-            left: 15px;
-            font-size: 6rem;
-            color: #667eea;
-            opacity: 0.1;
-            font-family: serif;
-        }
-
-        .quote-text {
-            font-size: 1.1rem;
-            line-height: 1.6;
-            margin-bottom: 20px;
-            position: relative;
-            z-index: 1;
-            font-style: italic;
-        }
-
-        .quote-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .copy-button {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-weight: 500;
-        }
-
-        .copy-button:hover {
-            background: linear-gradient(45deg, #5a67d8, #6b46c1);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .copy-button:active {
-            transform: translateY(0);
-        }
-
-        .copy-button.copied {
-            background: linear-gradient(45deg, #48bb78, #38a169);
-        }
-
-        .copy-icon {
-            font-size: 0.9rem;
-        }
-
-        .quote-author {
-            font-weight: 600;
-            color: #667eea;
-            font-size: 1rem;
-        }
-
-        .quote-classification {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-
-        .quote-likes {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .quote-actions {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .copy-btn {
-            background: none;
-            border: none;
-            color: #667eea;
-            cursor: pointer;
-            font-size: 1rem;
-            padding: 5px;
-            border-radius: 5px;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .copy-btn:hover {
-            background: rgba(102, 126, 234, 0.1);
-            transform: scale(1.05);
-        }
-
-        .copy-btn:active {
-            transform: scale(0.95);
-        }
-
-        .copy-feedback {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 25px;
-            z-index: 1000;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-
-        .copy-feedback.show {
-            opacity: 1;
-        }
-
-        .quote-id {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            background: rgba(102, 126, 234, 0.1);
-            color: #667eea;
-            padding: 3px 8px;
-            border-radius: 10px;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-
-        .empty-state {
-            text-align: center;
-            color: white;
-            padding: 60px 20px;
-        }
-
-        .empty-state h2 {
-            font-size: 2rem;
-            margin-bottom: 15px;
-            opacity: 0.9;
-        }
-
-        .empty-state p {
-            font-size: 1.1rem;
-            opacity: 0.7;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        @media (max-width: 768px) {
-            .quote-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .quote-meta {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .quote-actions {
-                flex-wrap: wrap;
-                gap: 10px;
-                width: 100%;
-                justify-content: space-between;
-            }
-
-            .copy-btn {
-                font-size: 0.9rem;
-                padding: 8px 12px;
-            }
-
-            .nav-link {
-                margin: 3px 5px;
-                padding: 10px 16px;
-                font-size: 0.9rem;
-            }
-        }
-
-        .heart {
-            color: #e74c3c;
-        }
-    </style>
+    {{template "head"}}
+    <title>{{.Title}} · Quote Dropper</title>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1 onclick="window.location.href='/'" style="text-decoration: none;">📝 Quote Dropper</h1>
-            <p>{{.Description}}</p>
+    {{template "header" "quotes"}}
+
+    <main class="wrap">
+        <div class="page-head">
+            <p class="eyebrow">Quotes</p>
+            <h1 class="page-title">{{.Title}}</h1>
+            {{if .Description}}<p class="lede">{{.Description}}</p>{{end}}
         </div>
 
-        <div class="search-container">
-            <input type="text" class="search-box" id="searchBox" placeholder="Search quotes by text, author, or category...">
-        </div>
-
-        <div class="filter-section">
+        {{if ne (len .Quotes) 1}}
+        <div class="toolbar">
+            <input type="search" id="searchBox" placeholder="Search by text, author or category" aria-label="Search quotes">
             <div class="filter-row">
-                <span class="filter-label">Quote Length</span>
-                <div class="navigation">
-                    <a href="/quotes" class="nav-link" data-filter="length" data-value="all">All Quotes</a>
-                    <a href="/quotes?maxLength=100" class="nav-link" data-filter="length" data-value="100">Short Quotes (≤100)</a>
-                    <a href="/quotes?maxLength=60" class="nav-link" data-filter="length" data-value="60">Very Short (≤60)</a>
-                </div>
+                <span class="filter-label">Length</span>
+                <button type="button" class="chip" data-filter="length" data-value="all">Any</button>
+                <button type="button" class="chip" data-filter="length" data-value="100">100 or less</button>
+                <button type="button" class="chip" data-filter="length" data-value="60">60 or less</button>
             </div>
-            <div class="filter-row">
+            <div class="filter-row" id="categoryNav">
                 <span class="filter-label">Category</span>
-                <div class="navigation" id="categoryNav">
-                    <a href="/quotes" class="nav-link category-filter" data-filter="category" data-value="all">All Categories</a>
-                    <!-- Categories will be loaded dynamically -->
-                </div>
-            </div>
-            <div class="filter-row">
-                <a href="/" class="nav-link">🏠 Home</a>
+                <button type="button" class="chip" data-filter="category" data-value="all">All</button>
             </div>
         </div>
 
         {{if .Stats}}
-        <div class="stats" id="statsContainer">
-            <strong id="statsCount">{{.Stats.Count}} quotes found</strong>
-            {{if .Stats.MaxLength}} • Maximum length: {{.Stats.MaxLength}} characters{{end}}
-            {{if .Stats.Classification}} • Category: {{.Stats.Classification}}{{end}}
-        </div>
+        <p class="result-count" id="statsCount" data-total="{{.Stats.Count}}">{{.Stats.Count}} quotes</p>
+        {{end}}
+        {{else}}
+        <p class="result-count"><a href="/quotes">All quotes</a></p>
         {{end}}
 
         {{if .Quotes}}
-        <div class="quote-grid" id="quoteGrid">
+        <div class="quote-list" id="quoteGrid">
             {{range .Quotes}}
-            <div class="quote-card" data-quote-text="{{.Text}}" data-quote-author="{{.Author}}" data-quote-classification="{{.Classification}}">
-                <div class="quote-id">#{{.ID}}</div>
-                <div class="quote-text">"{{.Text}}"</div>
+            <article class="quote-item" data-quote-text="{{.Text}}" data-quote-author="{{.Author}}" data-quote-classification="{{.Classification}}">
+                <blockquote>&ldquo;{{.Text}}&rdquo;</blockquote>
                 <div class="quote-meta">
-                    {{if isAuthorValid .Author}}
-                    <div class="quote-author">— {{.Author}}</div>
-                    {{end}}
-                    <div class="quote-actions">
-                        <div class="quote-classification">{{.Classification}}</div>
-                        <button class="copy-btn" onclick="copyQuote(this)" data-text="{{.Text}}" data-author="{{if isAuthorValid .Author}}{{.Author}}{{end}}">
-                            📋 Copy
-                        </button>
-                        <div class="quote-likes">
-                            <span class="heart">♥</span> {{.Likes}}
-                        </div>
-                    </div>
+                    {{if isAuthorValid .Author}}<span class="author">{{.Author}}</span>{{end}}
+                    <span>{{.Classification}}</span>
+                    <span>{{.Likes}} {{if eq .Likes 1}}like{{else}}likes{{end}}</span>
+                    <span class="spacer"></span>
+                    <button type="button" class="link-btn" onclick="copyQuote(this)" data-text="{{.Text}}" data-author="{{if isAuthorValid .Author}}{{.Author}}{{end}}">Copy</button>
+                    <a class="link-btn" href="/quotes/{{.ID}}">#{{.ID}}</a>
                 </div>
-            </div>
+            </article>
             {{end}}
         </div>
+        <div class="empty hidden" id="emptyState">
+            <h2>Nothing matches that search</h2>
+            <p>Try other words, or clear the search.</p>
+        </div>
         {{else}}
-        <div class="empty-state" id="emptyState">
+        <div class="empty" id="emptyState">
             <h2>No quotes found</h2>
-            <p>Try adjusting your search criteria or browse all quotes.</p>
+            <p>Try a different filter, or <a href="/quotes">see every quote</a>.</p>
         </div>
         {{end}}
-    </div>
+    </main>
 
-    <!-- Copy feedback tooltip -->
-    <div id="copyFeedback" class="copy-feedback">Copied to clipboard!</div>
+    {{template "footer"}}
+
+    <div id="copyFeedback" class="toast" role="status">Copied</div>
 
     <script>
-        // Search functionality
         const searchBox = document.getElementById('searchBox');
-        const quoteCards = document.querySelectorAll('.quote-card');
-        const statsContainer = document.getElementById('statsContainer');
+        const quoteCards = document.querySelectorAll('.quote-item');
         const statsCount = document.getElementById('statsCount');
         const emptyState = document.getElementById('emptyState');
         const quoteGrid = document.getElementById('quoteGrid');
+        const params = new URLSearchParams(window.location.search);
+        let lengthFilter = ['60', '100'].includes(params.get('maxLength')) ? params.get('maxLength') : 'all';
+        let categoryFilter = params.get('classification') || 'all';
 
-        // Current filter state
-        let currentLengthFilter = 'all';
-        let currentCategoryFilter = 'all';
-
-        // Copy to clipboard functionality
         function copyQuote(button) {
-            const text = button.getAttribute('data-text');
             const author = button.getAttribute('data-author');
-            
-            // Format the quote text - only include author if it's valid (same logic as iOS app)
-            let formattedQuote = `"${text}"`;
-            if (author && author !== 'Unknown Author' && author !== 'NULL' && author !== '' && author.trim() !== '') {
-                formattedQuote += ` — ${author}`;
-            }
+            let formatted = '“' + button.getAttribute('data-text') + '”';
+            if (author && author.trim()) formatted += ' — ' + author;
 
-            // Copy to clipboard
-            navigator.clipboard.writeText(formattedQuote).then(() => {
-                showCopyFeedback();
-            }).catch(() => {
-                // Fallback for older browsers
-                const textArea = document.createElement('textarea');
-                textArea.value = formattedQuote;
-                document.body.appendChild(textArea);
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    showCopyFeedback();
-                } catch (err) {
-                    console.error('Failed to copy quote:', err);
-                    alert('Failed to copy quote. Please try again.');
-                }
-                document.body.removeChild(textArea);
+            const done = () => {
+                const toast = document.getElementById('copyFeedback');
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 1600);
+            };
+            navigator.clipboard.writeText(formatted).then(done).catch(() => {
+                const ta = document.createElement('textarea');
+                ta.value = formatted;
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); done(); } catch (e) { console.error(e); }
+                document.body.removeChild(ta);
             });
         }
 
-        // Show copy feedback
-        function showCopyFeedback() {
-            const feedback = document.getElementById('copyFeedback');
-            feedback.classList.add('show');
-            setTimeout(() => {
-                feedback.classList.remove('show');
-            }, 2000);
-        }
-
-        // Load categories from API
-        async function loadCategories() {
-            try {
-                const response = await fetch('/categories');
-                const data = await response.json();
-                const categoryNav = document.getElementById('categoryNav');
-                
-                if (data.categories && data.categories.length > 0) {
-                    // Sort categories alphabetically
-                    const sortedCategories = data.categories.sort();
-                    
-                    // Add category links
-                    sortedCategories.forEach(category => {
-                        const link = document.createElement('a');
-                        link.href = `/quotes?classification=${category}`;
-                        link.className = 'nav-link category-filter';
-                        link.setAttribute('data-filter', 'category');
-                        link.setAttribute('data-value', category);
-                        link.textContent = category.charAt(0).toUpperCase() + category.slice(1);
-                        categoryNav.appendChild(link);
-                    });
-                }
-            } catch (error) {
-                console.error('Failed to load categories:', error);
-            }
-        }
-
-        // Set active filters based on current page
-        function setActiveFilters() {
-            const urlParams = new URLSearchParams(window.location.search);
-            
-            // Determine current filters from query parameters
-            const maxLength = urlParams.get('maxLength');
-            if (maxLength === '60') {
-                currentLengthFilter = '60';
-            } else if (maxLength === '100') {
-                currentLengthFilter = '100';
-            } else {
-                currentLengthFilter = 'all';
-            }
-
-            const classification = urlParams.get('classification');
-            if (classification) {
-                currentCategoryFilter = classification;
-            } else {
-                currentCategoryFilter = 'all';
-            }
-
-            // Update active states
-            document.querySelectorAll('.nav-link[data-filter="length"]').forEach(link => {
-                link.classList.toggle('active', link.getAttribute('data-value') === currentLengthFilter);
-            });
-
-            document.querySelectorAll('.nav-link[data-filter="category"]').forEach(link => {
-                link.classList.toggle('active', link.getAttribute('data-value') === currentCategoryFilter);
+        function markActive() {
+            document.querySelectorAll('.chip[data-filter]').forEach(chip => {
+                const current = chip.dataset.filter === 'length' ? lengthFilter : categoryFilter;
+                chip.setAttribute('aria-current', chip.dataset.value === current ? 'true' : 'false');
             });
         }
 
-        // Handle filter clicks
-        function handleFilterClick(event) {
-            const link = event.target;
-            const filter = link.getAttribute('data-filter');
-            const value = link.getAttribute('data-value');
-
-            if (!filter) return;
-
-            event.preventDefault();
-
-            // Update current filter state
-            if (filter === 'length') {
-                currentLengthFilter = value;
-            } else if (filter === 'category') {
-                currentCategoryFilter = value;
-            }
-
-            // Generate new URL with query parameters
-            const params = new URLSearchParams();
-            
-            // Add category filter if not 'all'
-            if (currentCategoryFilter !== 'all') {
-                params.append('classification', currentCategoryFilter);
-            }
-            
-            // Add length filter if not 'all'
-            if (currentLengthFilter !== 'all') {
-                params.append('maxLength', currentLengthFilter);
-            }
-
-            // Navigate to new URL
-            const queryString = params.toString();
-            window.location.href = queryString ? `/quotes?${queryString}` : '/quotes';
+        function navigate() {
+            const next = new URLSearchParams();
+            if (categoryFilter !== 'all') next.append('classification', categoryFilter);
+            if (lengthFilter !== 'all') next.append('maxLength', lengthFilter);
+            const qs = next.toString();
+            window.location.href = qs ? '/quotes?' + qs : '/quotes';
         }
 
-        function performSearch() {
-            const searchTerm = searchBox.value.toLowerCase().trim();
-            let visibleCount = 0;
-
-            quoteCards.forEach(card => {
-                const text = card.getAttribute('data-quote-text').toLowerCase();
-                const author = card.getAttribute('data-quote-author').toLowerCase();
-                const classification = card.getAttribute('data-quote-classification').toLowerCase();
-
-                const matches = text.includes(searchTerm) || 
-                               author.includes(searchTerm) || 
-                               classification.includes(searchTerm);
-
-                if (matches || searchTerm === '') {
-                    card.classList.remove('hidden');
-                    visibleCount++;
-                } else {
-                    card.classList.add('hidden');
-                }
-            });
-
-            // Update stats
-            if (statsContainer) {
-                if (searchTerm === '') {
-                    statsCount.textContent = "{{.Stats.Count}} quotes found";
-                } else {
-                    statsCount.textContent = visibleCount + " quotes found";
-                }
-            }
-
-            // Show/hide empty state
-            if (visibleCount === 0 && searchTerm !== '') {
-                if (emptyState) {
-                    emptyState.classList.remove('hidden');
-                    emptyState.querySelector('h2').textContent = 'No quotes match your search';
-                    emptyState.querySelector('p').textContent = 'Try different keywords or clear your search.';
-                }
-                if (quoteGrid) {
-                    quoteGrid.style.display = 'none';
-                }
-            } else {
-                if (emptyState) {
-                    emptyState.classList.add('hidden');
-                }
-                if (quoteGrid) {
-                    quoteGrid.style.display = 'grid';
-                }
-            }
-        }
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadCategories().then(() => {
-                setActiveFilters();
-                
-                // Add click handlers to filter links
-                document.addEventListener('click', function(event) {
-                    if (event.target.classList.contains('nav-link') && 
-                        (event.target.getAttribute('data-filter') === 'length' || 
-                         event.target.getAttribute('data-filter') === 'category')) {
-                        handleFilterClick(event);
-                    }
-                });
-            });
+        document.addEventListener('click', event => {
+            const chip = event.target.closest('.chip[data-filter]');
+            if (!chip) return;
+            if (chip.dataset.filter === 'length') lengthFilter = chip.dataset.value;
+            else categoryFilter = chip.dataset.value;
+            navigate();
         });
 
-        // Add event listener for real-time search
-        searchBox.addEventListener('input', performSearch);
+        fetch('/categories', { headers: { Accept: 'application/json' } })
+            .then(r => r.json())
+            .then(data => {
+                const nav = document.getElementById('categoryNav');
+                if (!nav) return;
+                (data.categories || []).sort().forEach(category => {
+                    const chip = document.createElement('button');
+                    chip.type = 'button';
+                    chip.className = 'chip';
+                    chip.dataset.filter = 'category';
+                    chip.dataset.value = category;
+                    chip.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+                    nav.appendChild(chip);
+                });
+                markActive();
+            })
+            .catch(err => console.error('Failed to load categories:', err));
 
-        // Add keyboard shortcut for search (Ctrl/Cmd + K)
-        document.addEventListener('keydown', function(e) {
+        markActive();
+
+        if (searchBox) searchBox.addEventListener('input', () => {
+            const term = searchBox.value.toLowerCase().trim();
+            let visible = 0;
+            quoteCards.forEach(card => {
+                const hay = (card.dataset.quoteText + ' ' + card.dataset.quoteAuthor + ' ' + card.dataset.quoteClassification).toLowerCase();
+                const match = term === '' || hay.includes(term);
+                card.classList.toggle('hidden', !match);
+                if (match) visible++;
+            });
+            if (statsCount) {
+                const n = term === '' ? statsCount.dataset.total : visible;
+                statsCount.textContent = n + (n == 1 ? ' quote' : ' quotes');
+            }
+            if (quoteGrid && emptyState) {
+                const none = visible === 0 && term !== '';
+                emptyState.classList.toggle('hidden', !none);
+                quoteGrid.style.display = none ? 'none' : '';
+            }
+        });
+
+        document.addEventListener('keydown', e => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                 e.preventDefault();
-                searchBox.focus();
+                if (searchBox) searchBox.focus();
             }
         });
     </script>
 </body>
-</html> 
+</html>

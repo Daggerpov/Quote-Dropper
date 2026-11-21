@@ -108,6 +108,8 @@ func main() {
 	r.Static("/images", "../../images")
 	// Add templates/images as a static path
 	r.Static("/templates/images", "./templates/images")
+	// Shared web stylesheet
+	r.Static("/assets", filepath.Join(templatePath, "assets"))
 
 	// Set up favicons
 	SetupFavicons(r)

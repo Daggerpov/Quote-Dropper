@@ -1,202 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Submit a Quote - Quote Dropper</title>
-    <link rel="icon" type="image/jpeg" href="/templates/images/small-droplet-icon.jpeg">
-    <style>
-        /* Same palettes as the apps: Linen in light mode, Espresso in dark mode */
-        :root {
-            --bg: #F6F0E6; --bg-bottom: #ECE4D8; --card: #FCFAF6; --text: #3A2E27;
-            --muted: rgba(58, 46, 39, 0.68); --accent: #A9492A; --on-accent: #FFFFFF;
-            --hairline: rgba(58, 46, 39, 0.12); --field: #FFFFFF; --shadow: 0 10px 30px rgba(58, 46, 39, 0.10);
-            --ok-bg: #E4EFE3; --ok-text: #24533A; --err-bg: #F6E1DA; --err-text: #8A2E16;
-            color-scheme: light;
-        }
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg: #3A2C24; --bg-bottom: #2D221C; --card: #473931; --text: #F7EEDD;
-                --muted: rgba(247, 238, 221, 0.68); --accent: #E8B66B; --on-accent: #15151A;
-                --hairline: rgba(247, 238, 221, 0.12); --field: #3F322A; --shadow: 0 12px 34px rgba(0, 0, 0, 0.35);
-                --ok-bg: #34402F; --ok-text: #CFE6C6; --err-bg: #4A2B22; --err-text: #F4C3B2;
-                color-scheme: dark;
-            }
-        }
-
-        * { box-sizing: border-box; }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 24px 16px 48px;
-            min-height: 100vh;
-            background: linear-gradient(var(--bg), var(--bg-bottom));
-            color: var(--text);
-        }
-
-        h1, h2 {
-            text-align: center;
-            color: var(--text);
-            font-family: ui-serif, 'New York', Georgia, 'Times New Roman', serif;
-        }
-
-        h1 {
-            cursor: pointer;
-            font-size: 2.2rem;
-            margin: 12px 0 18px;
-        }
-
-        .container {
-            max-width: 640px;
-            margin: 0 auto;
-        }
-
-        .navigation {
-            text-align: center;
-            margin-bottom: 26px;
-        }
-
-        .nav-link {
-            display: inline-block;
-            background: var(--card);
-            color: var(--text);
-            border: 1px solid var(--hairline);
-            padding: 9px 18px;
-            border-radius: 999px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.95rem;
-            margin: 4px 4px;
-            transition: background 0.2s ease, color 0.2s ease;
-        }
-
-        .nav-link:hover {
-            background: var(--accent);
-            color: var(--on-accent);
-        }
-
-        .quote-form, .feedback-form {
-            background: var(--card);
-            padding: 28px;
-            border-radius: 22px;
-            border: 1px solid var(--hairline);
-            box-shadow: var(--shadow);
-        }
-
-        .form-group {
-            margin-bottom: 18px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            color: var(--muted);
-        }
-
-        input[type="text"],
-        input[type="email"],
-        select,
-        textarea {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1px solid var(--hairline);
-            border-radius: 14px;
-            font-size: 16px;
-            font-family: inherit;
-            background: var(--field);
-            color: var(--text);
-        }
-
-        textarea {
-            min-height: 120px;
-            resize: vertical;
-            font-family: ui-serif, 'New York', Georgia, serif;
-            font-size: 17px;
-            line-height: 1.5;
-        }
-
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
-        }
-
-        button {
-            width: 100%;
-            padding: 14px 20px;
-            background: var(--accent);
-            color: var(--on-accent);
-            border: none;
-            border-radius: 16px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 700;
-            transition: opacity 0.2s, transform 0.1s;
-        }
-
-        button:hover { opacity: 0.9; }
-        button:active { transform: scale(0.99); }
-
-        .file-upload {
-            margin-top: 10px;
-        }
-
-        .message {
-            margin-top: 20px;
-            padding: 12px;
-            border-radius: 14px;
-            text-align: center;
-        }
-
-        .success {
-            background-color: var(--ok-bg);
-            color: var(--ok-text);
-        }
-
-        .error {
-            background-color: var(--err-bg);
-            color: var(--err-text);
-        }
-    </style>
+    {{template "head"}}
+    <title>Submit a quote · Quote Dropper</title>
 </head>
-
 <body>
-    <div class="container">
-        <h1 onclick="window.location.href='/'" style="text-decoration: none;">Submit a Quote</h1>
-        
-        <div class="navigation">
-            <a href="/" class="nav-link">Home</a>
-            <a href="/" class="nav-link">Browse Quotes</a>
-            <a href="/submit-feedback" class="nav-link">Submit Feedback</a>
+    {{template "header" "submit"}}
+
+    <main class="wrap narrow">
+        <div class="page-head">
+            <p class="eyebrow">Submit</p>
+            <h1 class="page-title">Submit a quote</h1>
+            <p class="lede">Every submission is read before it goes live. Approved quotes show up here and in the Quote Droplet apps.</p>
         </div>
 
-        <div class="quote-form">
+        <div class="card">
             <form id="quoteForm">
-                <div class="form-group">
-                    <label for="quoteText">Quote Text *</label>
-                    <textarea id="quoteText" name="quoteText" placeholder="Enter the quote text..." required></textarea>
+                <div class="field">
+                    <label for="quoteText">Quote</label>
+                    <textarea id="quoteText" name="quoteText" class="quote-input" placeholder="The quote, exactly as said or written" required></textarea>
                 </div>
 
-                <div class="form-group">
-                    <label for="author">Author</label>
-                    <input type="text" id="author" name="author" placeholder="Enter the author's name">
+                <div class="field">
+                    <label for="author">Author <span class="optional">optional</span></label>
+                    <input type="text" id="author" name="author" placeholder="Who said it">
                 </div>
 
-                <div class="form-group">
-                    <label for="submitterName">Your Name/Alias (Optional)</label>
-                    <input type="text" id="submitterName" name="submitter_name" placeholder="Enter your name or alias (optional)">
-                </div>
-
-                <div class="form-group">
-                    <label for="category">Category *</label>
+                <div class="field">
+                    <label for="category">Category</label>
                     <select id="category" name="category" required>
-                        <option value="" disabled selected>Select a category</option>
+                        <option value="" disabled selected>Choose a category</option>
                         <option value="wisdom">Wisdom</option>
                         <option value="motivation">Motivation</option>
                         <option value="discipline">Discipline</option>
@@ -207,11 +40,18 @@
                     </select>
                 </div>
 
-                <button type="submit">Submit Quote</button>
+                <div class="field">
+                    <label for="submitterName">Your name or alias <span class="optional">optional</span></label>
+                    <input type="text" id="submitterName" name="submitter_name" placeholder="Shown as the person who sent it in">
+                </div>
+
+                <button type="submit" class="btn block">Submit quote</button>
             </form>
             <div id="submissionMessage" class="message" style="display: none;"></div>
         </div>
-    </div>
+    </main>
+
+    {{template "footer"}}
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -262,7 +102,7 @@
                     // Clear form
                     quoteForm.reset();
                     // Show success message
-                    showMessage('Thank you for your quote submission! It will be reviewed by our team.', 'success');
+                    showMessage('Thanks! Your quote is in the review queue.', 'success');
                 })
                 .catch(error => {
                     console.error('Error:', error);
@@ -283,5 +123,4 @@
         });
     </script>
 </body>
-
-</html> 
+</html>
